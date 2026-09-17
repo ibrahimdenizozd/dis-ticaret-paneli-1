@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hammadde Stok Takip Paneli</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@500;600&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#1C2A3A;--ink2:#51606F;--line:#D5DCE3;--bg:#EDF0F3;--paper:#fff;--steel:#2F6690;--steel-l:#D6E4EF;--red:#B3261E;--red-l:#F6DCDA;--amber:#A8660F;--amber-l:#F5E6CC;--green:#3A7D44;--green-l:#DCEBDD;--grey:#8A96A2;--grey-l:#E4E8EC;--inp:#FFFBEF}
+*{box-sizing:border-box}
+body{margin:0;font-family:Barlow,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink);font-size:14px}
+button,input,select{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--steel);outline-offset:1px}
+.num{font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
+header{background:var(--ink);color:#fff;padding:7px 16px;display:flex;align-items:center;gap:10px;flex-wrap:nowrap}
+header h1{font-family:"Barlow Condensed",Barlow,sans-serif;font-weight:600;font-size:22px;margin:0;display:none}
+header .sp{flex:1}
+.hgrp{display:flex;align-items:center;gap:6px;color:#AFC0D0;font-size:13px}
+.hgrp input{width:54px;background:#2A3C50;border:1px solid #5B6E82;color:#fff;border-radius:4px;padding:5px 6px;text-align:center}
+.hbtn{background:transparent;border:1px solid #5B6E82;color:#fff;border-radius:4px;padding:5px 11px;cursor:pointer}
+.hbtn:hover{background:#2A3C50}
+.saved{color:#8FD19E;font-size:12px;min-width:70px}
+main{padding:12px 18px 40px}
+.status-bar{display:flex;margin-bottom:12px;border:1px solid var(--line);border-radius:6px;overflow:hidden;background:var(--paper)}
+.sbtn{flex:1;border:0;border-right:1px solid var(--line);background:var(--paper);padding:9px 14px;text-align:left;cursor:pointer;display:flex;align-items:baseline;gap:10px}
+.sbtn:last-child{border-right:0}
+.sbtn b{font-family:"Barlow Condensed";font-size:28px;font-weight:600;line-height:1}
+.sbtn span{color:var(--ink2)}
+.sbtn[aria-pressed=true]{box-shadow:inset 0 -3px 0 currentColor}
+.s-KRİTİK{color:var(--red)}.s-UYARI{color:var(--amber)}.s-İZLE{color:var(--steel)}.s-YETERLİ{color:var(--green)}.s-PASİF{color:var(--grey)}
+.tools{display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap}
+.tools input[type=search],.tools select{border:1px solid var(--line);background:var(--paper);border-radius:4px;padding:7px 10px}
+.tools input[type=search]{width:200px}
+.tools label{color:var(--ink2);display:flex;gap:6px;align-items:center}
+.tbtn{border:1px solid var(--line);background:var(--paper);border-radius:4px;padding:6px 12px;cursor:pointer}
+.tbtn:hover{border-color:var(--steel)}
+.tbtn.pri{background:var(--steel);border-color:var(--steel);color:#fff}
+.tbtn.del{color:var(--red)}
+.legend{display:flex;gap:14px;color:var(--ink2);font-size:12px;margin-left:auto}
+.legend i{display:inline-block;width:12px;height:12px;vertical-align:-2px;margin-right:4px}
+.tablewrap{background:var(--paper);border:1px solid var(--line);border-radius:6px;overflow-x:auto}
+table{border-collapse:collapse;width:100%}
+th{background:#F5F7F9;text-align:left;font-weight:600;font-size:12.5px;color:var(--ink2);padding:8px 10px;border-bottom:1px solid var(--line);white-space:nowrap;user-select:none}
+#main th[data-k]{cursor:pointer}
+th.num{text-align:right}
+td{padding:7px 10px;border-bottom:1px solid #ECEFF2;vertical-align:middle}
+#main tbody tr{cursor:pointer}
+#main tbody tr:hover{background:#F4F8FB}
+.grp{color:var(--ink2);font-size:12.5px;white-space:nowrap}
+.nm{font-weight:500;min-width:160px}
+.code{color:var(--grey);font-size:12px;font-weight:400}
+.pill{display:inline-block;padding:2px 8px;border-radius:3px;font-size:12px;font-weight:600}
+.p-KRİTİK{background:var(--red-l);color:var(--red)}.p-UYARI{background:var(--amber-l);color:var(--amber)}.p-İZLE{background:var(--steel-l);color:var(--steel)}.p-YETERLİ{background:var(--green-l);color:var(--green)}.p-PASİF{background:var(--grey-l);color:var(--grey)}
+.neg{color:var(--red)!important;font-weight:600}
+.runway{display:grid;grid-template-columns:repeat(26,1fr);gap:1px;width:208px;height:20px}
+.runway i{display:block;height:100%;position:relative}
+.runway i.in::after{content:"";position:absolute;left:0;right:0;top:-3px;height:3px;background:var(--ink)}
+.wkhead{display:grid;grid-template-columns:repeat(26,1fr);width:208px;font-size:10px;color:var(--grey);font-weight:400}
+/* drawer */
+.scrim{position:fixed;inset:0;background:rgba(28,42,58,.35);display:none;z-index:5}
+.scrim.open{display:block}
+aside{position:fixed;top:0;right:0;height:100%;width:min(980px,100%);background:var(--paper);transform:translateX(100%);transition:transform .18s ease;overflow-y:auto;box-shadow:-8px 0 24px rgba(28,42,58,.18);z-index:6}
+aside.open{transform:none}
+@media (prefers-reduced-motion:reduce){aside{transition:none}}
+.dh{padding:14px 22px;border-bottom:1px solid var(--line);display:grid;grid-template-columns:1fr auto;gap:10px}
+.dh .fields{display:grid;grid-template-columns:2fr 1fr 1.3fr 1fr;gap:8px}
+.dh label{font-size:11.5px;color:var(--ink2);display:flex;flex-direction:column;gap:2px}
+.dh input{border:1px solid var(--line);border-radius:4px;padding:5px 8px;background:var(--inp)}
+.dh input.big{font-size:17px;font-weight:600}
+.dh .acts{display:flex;gap:8px;align-items:flex-start}
+.x{border:0;background:none;font-size:26px;cursor:pointer;color:var(--ink2);line-height:1;padding:0 4px}
+.stats{display:grid;grid-template-columns:repeat(5,1fr);border-bottom:1px solid var(--line)}
+.stats div{padding:10px 16px;border-right:1px solid var(--line)}
+.stats div:last-child{border-right:0}
+.stats small{display:block;color:var(--ink2);font-size:12px}
+.stats b{font-size:18px;font-weight:600;font-variant-numeric:tabular-nums}
+.sec{padding:12px 22px}
+.sec h3{margin:0 0 8px;font-size:15px;font-weight:600;display:flex;gap:12px;align-items:center}
+.sec h3 small{font-weight:400;color:var(--ink2);font-size:12.5px}
+.chart svg{width:100%;height:auto;display:block}
+.grid th{position:sticky;top:0;z-index:1;font-size:12px;padding:6px 6px}
+.grid td{padding:0;border:1px solid #E3E8ED}
+.grid td.wk{padding:3px 8px;background:#F5F7F9;font-weight:500;white-space:nowrap;font-size:12.5px}
+.grid td.calc{padding:3px 8px;font-size:13px;background:#FAFBFC}
+.grid input{width:100%;border:0;background:transparent;padding:5px 7px;font-size:13px;min-width:0}
+.grid input:focus{background:var(--inp);outline:2px solid var(--steel);outline-offset:-2px}
+.grid input.n{text-align:right;font-variant-numeric:tabular-nums}
+.grid input.bad{color:var(--red);background:var(--red-l)}
+.grid tr.cur td.wk{background:var(--steel);color:#fff}
+.grid tr.past{opacity:.6}
+.hint{color:var(--ink2);font-size:12px;margin:6px 0 0}
+@media (max-width:760px){main{padding-left:10px;padding-right:10px}header{padding-left:10px;padding-right:10px}.status-bar{flex-wrap:wrap}.sbtn{flex:1 1 45%}.stats{grid-template-columns:repeat(2,1fr)}.dh .fields{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+<header>
+  <h1>Hammadde Stok Takip Paneli</h1>
+  <div class="hgrp">
+    <button class="hbtn" id="prevW" aria-label="Önceki hafta">‹</button>
+    Hafta <input id="wk" type="number" min="1" max="52"> / <input id="yr" type="number" style="width:66px">
+    <button class="hbtn" id="nextW" aria-label="Sonraki hafta">›</button>
+  </div>
+  <div class="hgrp" title="Bu kadar hafta içinde eksiye düşen hammadde kritik / uyarı olarak işaretlenir">
+    Kritik ≤ <input id="thK" type="number" min="1" max="26"> hf  Uyarı ≤ <input id="thU" type="number" min="1" max="26"> hf
+  </div>
+  <span class="sp"></span>
+  <span class="saved" id="saved" style="display:none"></span>
+  <button class="hbtn" id="bkp" style="display:none">Yedek al</button>
+  <button class="hbtn" id="rst" style="display:none">Yedekten yükle</button>
+  <input type="file" id="file" accept=".json" hidden>
+</header>
+<main>
+  <div class="status-bar" id="sbar"></div>
+  <div class="tools">
+    <input type="search" id="q" placeholder="Hammadde, kod veya grup ara">
+    <select id="grp"></select>
+    <label><input type="checkbox" id="hidePasif" checked> Pasifleri gizle</label>
+    <button class="tbtn pri" id="addM">Yeni hammadde</button>
+    <button class="tbtn" id="csv">Listeyi CSV indir</button>
+    <div class="legend">
+      <span><i style="background:var(--steel)"></i>Stok var</span>
+      <span><i style="background:var(--red)"></i>Eksi bakiye</span>
+      <span><i style="background:var(--ink);height:3px;vertical-align:4px"></i>Giriş haftası</span>
+    </div>
+  </div>
+  <div class="tablewrap"><table id="main"><thead><tr id="thead"></tr></thead><tbody id="tbody"></tbody></table></div>
+</main>
+<div class="scrim" id="scrim"></div>
+<aside id="drawer" aria-hidden="true"></aside>
+<datalist id="grps"></datalist>
+
+<script>
+const SEED={"wk":38,"yr":2026,"mats":[{"id":"m1","grp":"Cotton","name":"HAM PIMA GRADE H","code":"VF-CO-000005-000000","note":"","rows":{}},{"id":"m2","grp":"Cotton","name":"AMERİKAN PİMA","code":"VF-CO-000025-000000","note":"","rows":{"202638":{"t":"16500","s":"137763"},"202639":{"t":"16500"},"202640":{"t":"16500"},"202641":{"c":"28964","t":"16500","g":"60000"},"202642":{"t":"16500"},"202643":{"c":"29368","t":"16500","g":"80000"},"202644":{"c":"29389","t":"16500","g":"100000"},"202645":{"t":"16500"},"202646":{"t":"16500"},"202647":{"t":"16500"},"202648":{"c":"29389","t":"16500","g":"100000"},"202649":{"t":"16500"},"202650":{"t":"16500"},"202651":{"t":"16500"},"202652":{"t":"16500"},"202701":{"t":"16500"},"202702":{"t":"16500"},"202703":{"t":"16500"},"202704":{"t":"16500"},"202705":{"t":"16500"},"202706":{"t":"16500"},"202707":{"t":"16500"},"202708":{"t":"16500"},"202709":{"t":"16500"},"202710":{"t":"16500"},"202711":{"t":"16500"},"202712":{"t":"16500"},"202713":{"t":"16500"}}},{"id":"m3","grp":"Cotton","name":"PIMA.FITIL NE 1.8","code":"PIMA.FITIL NE 1.8","note":"","rows":{}},{"id":"m4","grp":"Cotton","name":"PIMA COMBED COTTON","code":"VF-COP-000005-000000","note":"","rows":{}},{"id":"m5","grp":"Cotton","name":"TIRECORD İÇİN DOKUMA","code":"VF-CO-000018-000000","note":"","rows":{}},{"id":"m6","grp":"Cotton","name":"HAM PAMUK","code":"VF-CO-000003-000000","note":"","rows":{"202638":{"s":"116325"}}},{"id":"m7","grp":"Cotton","name":"ELYAF PAMUK ORGANİK GOTS","code":"VF-CO-000016-000000","note":"","rows":{}},{"id":"m8","grp":"Cotton","name":"ELYAF PAMUK ORGANİK OCS","code":"VF-CO-000030-000000","note":"","rows":{}},{"id":"m9","grp":"Cotton","name":"MEDIUM STABLE COMBED WEAWING","code":"VF-COP-000006-000000","note":"","rows":{"202638":{"s":"64489"}}},{"id":"m10","grp":"Cotton","name":"MEDIUM STABLE CARDED WEAWING","code":"VF-COC-000004-000000","note":"","rows":{"202638":{"s":"1184"}}},{"id":"m11","grp":"Cotton","name":"PİMA CARDED COTTON","code":"VF-COC-000002-000000","note":"","rows":{}},{"id":"m12","grp":"Cotton","name":"ORGANİK OCS EKRU","code":"VF-COP-000014-000000","note":"","rows":{"202638":{"s":"9777"}}},{"id":"m13","grp":"Cotton","name":"ORGANİK PENYE","code":"VF-COP-000015-000000","note":"","rows":{"202638":{"s":"16838"}}},{"id":"m14","grp":"Cotton","name":"TIRECORD İÇİN NORMAL PAMUK","code":"VF-CO-000018-000000","note":"","rows":{}},{"id":"m15","grp":"Cotton","name":"Recycle Pamuk","code":"VF-CO-000023-000000","note":"","rows":{}},{"id":"m16","grp":"Cotton","name":"ORGANİK KARDE","code":"VF-COC-000003-000000","note":"","rows":{}},{"id":"m17","grp":"Cotton","name":"üstübü VF-COC-000005-000000","code":"VF-CO-000006-000000","note":"","rows":{"202638":{"s":"236"}}},{"id":"m18","grp":"Aramid","name":"1,1 Dtex 51 mm Metaaramid TORAY","code":"MF-AR-000030-000000","note":"","rows":{}},{"id":"m19","grp":"Aramid","name":"1,7 Dtex 51 mm Metaaramid TORAY","code":"MF-AR-000014-000000","note":"","rows":{"202638":{"s":"9896"},"202639":{"c":"29554","o":"4466","t":"1500/0.95","g":"10000"},"202641":{"o":"4362","t":"2000/0.95"},"202642":{"o":"4314","t":"5000*0.475/0.94"},"202643":{"o":"4369-4370","t":"1200*0.4/0.94"},"202644":{"o":"3924-4357","t":"2000*0.95/0.94+5000*0.95/0.94"},"202645":{"t":"1500"},"202646":{"c":"29924","t":"1500","g":"10000"},"202647":{"t":"1500"},"202648":{"t":"1500"}}},{"id":"m20","grp":"Aramid","name":"2,2 Dtex 51 mm Metaaramid TORAY","code":"MF-AR-000003-000000","note":"","rows":{}},{"id":"m21","grp":"Aramid","name":"1,7 Dtex 51 mm Paraaramid HUVIS","code":"MF-AR-000026-000000","note":"","rows":{}},{"id":"m22","grp":"Aramid","name":"1,7 Dtex 51 mm Paraaramid TWARON","code":"MF-AR-000011-000000","note":"","rows":{}},{"id":"m23","grp":"Aramid","name":"1,7 Dtex 51 mm Paraaramid KOLON","code":"MF-AR-000035-000000","note":"","rows":{"202638":{"s":"3413"},"202642":{"o":"4314","t":"5000*0.025/0.94"},"202644":{"o":"3924-4357","t":"2000*0.05/0.94+5000*0.05/0.94"}}},{"id":"m24","grp":"Aramid","name":"1,7 Dtex 50 mm Paraaramid TWARON BLACK","code":"MF-AR-000016-900060","note":"","rows":{"202638":{"s":"250"}}},{"id":"m25","grp":"Aramid","name":"1,7 Dtex 51 mm Metaaramid TORAY BLACK","code":"MF-AR-000014-900051","note":"","rows":{"202638":{"s":"10826"}}},{"id":"m26","grp":"Aramid","name":"1,7 Dtex 51 mm Paraaramid TAPARAN BLACK SD","code":"MF-AR-000013-000000","note":"","rows":{}},{"id":"m27","grp":"Aramid","name":"1,7 Dtex 50 mm metaaramid Navy Blue","code":"MF-AR-000005-440004","note":"","rows":{"202643":{"c":"28575","o":"3769","t":"9000*0.35/0.95","g":"10000"},"202646":{"o":"3770","t":"8000*0.35/0.95"},"202647":{"o":"3771","t":"8000*0.35/0.95"},"202708":{"c":"29599","g":"8500"},"202713":{"o":"4317","t":"8000*0.35/0.95"},"202715":{"o":"4318","t":"8000*0.35/0.95"},"202717":{"o":"4319","t":"7000*0.35/0.95"}}},{"id":"m28","grp":"Antistatik","name":"T638 WHITE SD 2,2dtex 38mm( nylon ant)","code":"MF-AS-000016-000000","note":"","rows":{"202638":{"s":"640"},"202643":{"o":"3769","t":"9000*0.01/0.94"},"202644":{"o":"4380","t":"2000*0.017/0.94"},"202645":{"o":"4475","t":"3500*0.017/0.94"},"202646":{"o":"3770","t":"8000*0.01/0.94"},"202647":{"o":"3771","t":"8000*0.01/0.94"},"202713":{"o":"4317","t":"8000*0.01/0.95"},"202715":{"o":"4318","t":"8000*0.01/0.95"},"202717":{"o":"4319","t":"8000*0.01/0.95"}}},{"id":"m29","grp":"Antistatik","name":"301 EOS DARK GREY SD 3,3 dtex 51 mm (no shock)","code":"MF-AS-000015-000000","note":"","rows":{}},{"id":"m30","grp":"Antistatik","name":"301 EOS DARK GREY SD 3,3 dtex 38 mm (no shock)","code":"MF-AS-000003-000000","note":"","rows":{}},{"id":"m31","grp":"Antistatik","name":"401 ECS GREY SD 4,7 dtex 51mm","code":"MF-AS-000013-000000","note":"","rows":{}},{"id":"m32","grp":"Antistatik","name":"3,3dtex 38mm  SO NEUTRAL BLACK SD  (PES)","code":"MF-AS-000004-000000","note":"","rows":{"202638":{"s":"470"},"202639":{"c":"29920","o":"4360-4361","t":"5000*0.017/0.94+5000*0.017/0.94","g":"1000"},"202640":{"o":"4359","t":"3000*0.017/0.94"},"202641":{"o":"4336","t":"2000*0.017/0.94"},"202642":{"o":"4428-4431-4451","t":"7000*0.017/0.94+3000*0.017/0.94+6000*0.017/0.94"},"202643":{"o":"4391","t":"3000*0.017/0.94"},"202644":{"o":"4470-4471-4472-4473","t":"4000*0.017/0.94"},"202646":{"o":"4379","t":"2000*0.017/0.94"},"202647":{"o":"4474","t":"7000*0.017/0.94"},"202649":{"o":"4440-4453","t":"3500*0.017/0.94+5000*0.017/0.94"},"202650":{"o":"4441","t":"3500*0.017/0.94"}}},{"id":"m33","grp":"Antistatik","name":"NEGA-STAT BLACK SD 39dtex 6f","code":"ML-AS-000002-000011","note":"","rows":{"202638":{"o":"4272","t":"400*0.1","s":"533"},"202639":{"o":"4328-4329","t":"400*0.1"},"202640":{"o":"4310-4311","t":"600*0.106"},"202641":{"o":"4259","t":"5000*0.0734"}}},{"id":"m34","grp":"Modacrylic","name":"SBY 2,2","code":"MF-MA-000003-000000","note":"","rows":{}},{"id":"m35","grp":"Modacrylic","name":"SBY 1,7","code":"MF-MA-000038-000000","note":"","rows":{}},{"id":"m36","grp":"Modacrylic","name":"PROTEX C","code":"MF-MA-000005-000000","note":"","rows":{"202638":{"g":"5148"}}},{"id":"m37","grp":"Modacrylic","name":"PROTEX Q","code":"MF-MA-000011-000000","note":"","rows":{}},{"id":"m38","grp":"Modacrylic","name":"PROTEX E  1,7dtex 38mm  Ekru","code":"MF-MA-000022-000000","note":"","rows":{"202638":{"t":"9250","g":"96772"},"202639":{"t":"9250"},"202640":{"c":"29053","t":"9250","g":"48000"},"202641":{"t":"9250"},"202642":{"t":"9250"},"202643":{"t":"9250"},"202644":{"t":"9250"},"202645":{"t":"9250"},"202646":{"t":"9250"},"202647":{"t":"9250"},"202648":{"t":"9250"},"202649":{"c":"29806","t":"9250","g":"48000"},"202650":{"t":"9250"},"202651":{"t":"9250"},"202652":{"t":"9250"},"202701":{"t":"9250"},"202702":{"c":"30037","t":"9250","g":"24000"},"202703":{"t":"9250"}}},{"id":"m39","grp":"Modacrylic","name":"PE  1,7dtex 51mm  Ekru","code":"MF-MA-000023-000000","note":"","rows":{}},{"id":"m40","grp":"Modacrylic","name":"PROTEX W","code":"MF-MA-000002-000000","note":"","rows":{}},{"id":"m41","grp":"Modacrylic","name":"PROTEX W 51 mm","code":"MF-MA-000019-000000","note":"","rows":{}},{"id":"m42","grp":"Modacrylic","name":"KCDY10 2.2DTEX 51 MM","code":"MF-MA-000008-000000","note":"","rows":{}},{"id":"m43","grp":"Modacrylic","name":"PROTEX F","code":"MF-MA-000034-000000","note":"","rows":{"202638":{"t":"15500","g":"165020"},"202639":{"c":"29083","t":"15500","g":"48000"},"202640":{"c":"29050-29051","t":"15500","g":"72000"},"202641":{"t":"15500"},"202642":{"t":"15500"},"202643":{"t":"15500"},"202644":{"t":"15500"},"202645":{"t":"15500"},"202646":{"c":"29568","t":"15500","g":"24000"},"202647":{"t":"15500"},"202648":{"t":"15500"},"202649":{"c":"29807","t":"15500","g":"24000"},"202650":{"c":"29857","t":"15500","g":"72000"},"202651":{"t":"15500"},"202652":{"t":"15500"},"202701":{"t":"15500"},"202702":{"t":"15500"},"202703":{"t":"15500"}}},{"id":"m44","grp":"XLA-Bonaflame","name":"DOW XLA D1408002 NP 156dtex  Ekru","code":"ML-EL-000003-000000","note":"","rows":{"202638":{"s":"2991"},"202641":{"o":"4198","t":"10000*0.09"},"202647":{"o":"4199","t":"10000*0.09"}}},{"id":"m45","grp":"XLA-Bonaflame","name":"BONAFLAME 12/74  820011/ 1110 DARK GREY","code":"ML-PP-000002-820011","note":"","rows":{}},{"id":"m46","grp":"XLA-Bonaflame","name":"SAXA 12/74  820011/ 1110 DARK GREY","code":"ML-PP-000004-820020","note":"","rows":{"202638":{"s":"2106"}}},{"id":"m47","grp":"XLA-Bonaflame","name":"DOW XLA D0758002 NP 83dtex  Ekru","code":"ML-EL-000005-000000","note":"","rows":{"202638":{"o":"4260","t":"7000*0.1","s":"2716"},"202641":{"o":"4200","t":"10000*0.07"},"202649":{"o":"4218","t":"10000*0.07"}}},{"id":"m48","grp":"XLA-Bonaflame","name":"FILAMENT ELASTANE REGULAR BR 44DTEX Ekru","code":"ML-EL-000002-000000","note":"","rows":{"202638":{"s":"330"}}},{"id":"m49","grp":"XLA-Bonaflame","name":"FILAMENT ELASTANE REGULAR BR 78DTEX Ekru","code":"ML-EL-000001-000000","note":"","rows":{"202638":{"s":"164"}}},{"id":"m50","grp":"Nilit-Fulgar","name":"FILAMENT NYLON 6.6 50dtex 14f- FULGAR","code":"ML-PA-000015-000000","note":"","rows":{"202638":{"t":"5*7*360*0.25","s":"48580"},"202639":{"c":"işletme","t":"5*7*360*0.25","g":"6700"},"202640":{"t":"5*7*360*0.25"},"202641":{"t":"5*7*360*0.25"},"202642":{"t":"5*7*360*0.25"},"202643":{"t":"5*7*360*0.25"},"202644":{"t":"5*7*360*0.25"},"202645":{"t":"5*7*360*0.25"},"202646":{"t":"5*7*360*0.25"},"202647":{"c":"PROJEKSİYON","t":"5*7*360*0.25","g":"13200"},"202648":{"t":"5*7*360*0.25"},"202649":{"t":"5*7*360*0.25"},"202650":{"c":"PROJEKSİYON","t":"5*7*360*0.25","g":"13200"},"202651":{"t":"5*7*360*0.25"},"202652":{"t":"5*7*360*0.25"},"202701":{"t":"5*7*360*0.25"}}},{"id":"m51","grp":"Nilit-Fulgar","name":"FILAMENT NYLON 6.6 HT 33dtex 10f-","code":"ML-PA-000012-000000","note":"","rows":{"202638":{"o":"4299","t":"5300*0.2275","s":"2109"},"202639":{"c":"İŞLETME","g":"500"},"202642":{"o":"4309-4310-4311","t":"5300*0.2275"}}},{"id":"m52","grp":"Tirecord Nylon","name":"110 dtex filament","code":"ML-PA-000023-000000","note":"","rows":{}},{"id":"m53","grp":"Tirecord Nylon","name":"125 dtex filament","code":"ML-PA-000032-000000","note":"","rows":{"202638":{"c":"işletme","t":"270*7*0.58","s":"1200"},"202639":{"c":"29427","t":"270*7*0.58","g":"15000"},"202640":{"t":"270*7*0.58"},"202641":{"t":"270*7*0.58"},"202642":{"t":"270*7*0.58"},"202643":{"t":"270*7*0.58"},"202644":{"t":"270*7*0.58"},"202645":{"t":"270*7*0.58"},"202646":{"t":"270*7*0.58"},"202647":{"t":"270*7*0.58"},"202648":{"t":"270*7*0.58"},"202649":{"t":"270*7*0.58"},"202650":{"t":"270*7*0.58"},"202651":{"t":"270*7*0.58"},"202652":{"t":"270*7*0.58"},"202701":{"t":"270*7*0.58"},"202702":{"t":"270*7*0.58"},"202703":{"t":"270*7*0.58"}}},{"id":"m54","grp":"Polyester Filament","name":"FILAMENT POLYESTER TYPE 712 HF 61dtex","code":"ML-PL-000016-000000","note":"","rows":{}},{"id":"m55","grp":"Polyester Filament","name":"FILAMENT POLYESTER TYPE 712 HF 61dtex AYM","code":"ML-PL-000045-000000","note":"","rows":{}},{"id":"m56","grp":"Polyester Filament","name":"FILAMENT POLYESTER TYPE 712 HF 74dtex AYM-TFF TOPLAM","code":"ML-PL-000000","note":"","rows":{"202636":{"t":"(3*300*7+8*150*7+5*190*7)*0.56"},"202637":{"t":"(3*300*7+8*150*7+5*190*7)*0.56"},"202638":{"t":"(3*300*7+8*150*7+5*190*7)*0.56","g":"23700"},"202639":{"t":"(3*300*7+9*150*7+5*190*7)*0.56","g":"30195"},"202640":{"t":"(3*300*7+9*150*7+5*190*7)*0.56","g":"22155"},"202641":{"t":"(3*300*7+9*150*7+5*190*7)*0.56","g":"25433"},"202642":{"t":"(3*300*7+9*150*7+5*190*7)*0.56","g":"15076"},"202643":{"t":"(3*300*7+8*150*7+5*190*7)*0.56","g":"22000"},"202644":{"t":"(3*300*7+8*150*7+5*190*7)*0.56","g":"15000"},"202645":{"t":"(3*300*7+8*150*7+5*190*7)*0.56"},"202646":{"t":"(3*300*7+8*150*7+5*190*7)*0.56","g":"15000"},"202647":{"t":"(3*300*7+8*150*7+5*190*7)*0.56","g":"7000"},"202648":{"t":"(3*300*7+8*150*7+5*190*7)*0.56","g":"11000"},"202649":{"t":"(3*300*7+8*150*7+5*190*7)*0.56","g":"10000"},"202650":{"t":"(3*300*7+8*150*7+5*190*7)*0.56","g":"17000"},"202651":{"t":"(3*300*7+8*150*7+5*190*7)*0.56","g":"7000"},"202652":{"t":"(3*300*7+8*150*7+5*190*7)*0.56","g":"13000"},"202701":{"t":"(3*300*7+8*150*7+5*190*7)*0.56","g":"7000"},"202702":{"t":"(3*300*7+8*150*7+5*190*7)*0.56","g":"18000"}}},{"id":"m57","grp":"Polyester Filament","name":"FILAMENT POLYESTER TYPE 712 HF 74dtex TFF","code":"ML-PL-000028-000000","note":"","rows":{"202643":{"c":"29408","g":"15000"}}},{"id":"m58","grp":"Polyester Filament","name":"FILAMENT POLYESTER TYPE 712 HF 74dtex AYM PIRN","code":"ML-PL-000046-000000","note":"","rows":{"202638":{"g":"21900"},"202639":{"c":"işletme-makine üstü","g":"2915+17000"},"202640":{"c":"29487","g":"6517+6530"},"202641":{"c":"29487","g":"13514+4385"},"202642":{"c":"29487-29938","g":"3355+11721"},"202644":{"c":"29938","g":"15000"},"202646":{"c":"29938","g":"15000"},"202647":{"c":"sas yok","g":"7000"},"202648":{"c":"sas yok","g":"11000"},"202650":{"c":"sas yok","g":"17000"},"202651":{"c":"sas yok","g":"7000"},"202652":{"c":"sas yok","g":"13000"},"202701":{"c":"sas yok","g":"7000"},"202702":{"c":"sas yok","g":"18000"}}},{"id":"m59","grp":"Polyester Filament","name":"FILAMENT POLIESTERE TYPE 712 HF/ 100dtex","code":"ML-PL-000029-000000","note":"","rows":{}},{"id":"m60","grp":"Polyester Filament","name":"FILAMENT POLYESTER TYPE 712 HF 74dtex AYM CHEESE","code":"ML-PL-000049-000000","note":"","rows":{"202638":{"g":"1800"},"202639":{"c":"işletme-mak üstü-fason","g":"1170+1450+1800+5860"},"202640":{"c":"29793","g":"1561+7547"},"202641":{"c":"29629","g":"7534"},"202643":{"c":"29793","g":"7000"},"202649":{"c":"sas yok","g":"10000"}}},{"id":"m61","grp":"Polyester Filament","name":"FILAMENT POLIESTERE TYPE 712 HF 138dtex AYM","code":"ML-PL-000048/000050-000000","note":"","rows":{"202638":{"g":"7126"}}},{"id":"m62","grp":"Polyester Filament","name":"FILAMENT POLIESTERE TYPE 712 HF/A 275dtex","code":"ML-PL-000032-000000","note":"","rows":{}},{"id":"m63","grp":"Polyester Filament","name":"FILAMENT POLIESTERE TYPE 712 HF/A 455dtex","code":"ML-PL-000033-000000","note":"","rows":{}},{"id":"m64","grp":"Tencel LF - STD","name":"Tencel LF","code":"MF-TEN-000002-000000","note":"","rows":{"202638":{"s":"13704"},"202640":{"o":"4461-4462","t":"1500*0.4/0.94"},"202641":{"o":"4266","t":"2000*0.7/0.94"},"202642":{"o":"4428","t":"7000*0.6/0.94"},"202648":{"o":"4408","t":"2000*0.7/0.94"}}},{"id":"m65","grp":"Tencel LF - STD","name":"Tencel Std","code":"MF-TEN-000001-000000","note":"","rows":{"202638":{"s":"16666"},"202639":{"o":"3854","t":"3600*0.3/0.9"},"202640":{"o":"3855","t":"3600*0.3/0.9"},"202642":{"o":"3856","t":"3600*0.3/0.9"},"202645":{"o":"3857","t":"3600*0.3/0.9"},"202647":{"o":"3858","t":"3600*0.3/0.9"},"202649":{"o":"3859","t":"3600*0.3/0.9"},"202652":{"o":"3860","t":"3600*0.3/0.9"},"202701":{"o":"3861","t":"5000*0.3/0.9"}}},{"id":"m66","grp":"Tencel LF - STD","name":"Tencel A 100","code":"MF-TEN-000003-000000","note":"","rows":{"202638":{"s":"6141"},"202645":{"o":"4033-4034","t":"6200*0.68/0.9"}}},{"id":"m67","grp":"Pes FR","name":"PES FR  TORAY-FUKAI (SBR)","code":"MF-PL-000023/109-000000","note":"","rows":{"202638":{"s":"17998"},"202640":{"o":"4315","t":"4000*0.5/0.94"},"202643":{"o":"4449","t":"3000/0.95"},"202645":{"o":"4443","t":"2000*0.5/0.94"},"202649":{"o":"4460","t":"4000*0.5/0.94"}}},{"id":"m68","grp":"Pes FR","name":"TORAY & HUVIS YERİNE RECYCLE","code":"MF-PL-000089-000000","note":"","rows":{}},{"id":"m69","grp":"Pes FR","name":"TORAY & HUVIS YERİNE VİRGİN","code":"MF-PL-000090-000000","note":"","rows":{}},{"id":"m70","grp":"Pes FR","name":"KESİLMİŞ FR PES","code":"MF-PL-000042-000000","note":"","rows":{}},{"id":"m71","grp":"Pes FR","name":"PES FR TORAY (SD)","code":"MF-PL-000011-000000","note":"","rows":{}},{"id":"m72","grp":"Pes FR","name":"TREVIRA CS T270 1,7 Dtex 38 mm","code":"MF-PL-000061-000000","note":"","rows":{"202638":{"s":"8666"},"202641":{"o":"4342","t":"1500*0.5/0.95"},"202645":{"o":"4468","t":"3000/0.94"},"202702":{"o":"4469","t":"3000/0.94"}}},{"id":"m73","grp":"Pes FR","name":"TREVIRA CS T270 1,3  Dtex 38 mm","code":"MF-PL-000063-000000","note":"","rows":{"202638":{"o":"4249","t":"1000/0.95","s":"4259"},"202641":{"o":"4342","t":"1500*0.5/0.95"}}},{"id":"m74","grp":"Pes FR","name":"TREVIRA T350 SD 1,7 Dtex 37 mm OPTİK BEYAZ","code":"MF-PL-000017-810005","note":"","rows":{}},{"id":"m75","grp":"Pes FR","name":"TREVIRA T350 BIOACTIVE","code":"MF-PL-000018-000000","note":"","rows":{"202638":{"s":"11663"}}},{"id":"m76","grp":"Pes FR","name":"TREVIRA 3,3 dtex 60 mm","code":"MF-PL-000064-000000","note":"","rows":{}},{"id":"m77","grp":"Pes FR","name":"%100 RECYCLED POLYESTER FR 1,54 DTEX 38MM SD EKRU","code":"MF-PL-000060-000000","note":"","rows":{}},{"id":"m78","grp":"Pes FR","name":"POLYESTER FR 1,54 DTEX 38MM SD EKRU","code":"MF-PL-000106-000000","note":"","rows":{"202638":{"c":"Tianjin","o":"fason","t":"70000","s":"12309"},"202639":{"c":"Jiangsu","g":"91700"},"202640":{"c":"29794","o":"4315","t":"4000*0.5/0.94","g":"75000"},"202642":{"o":"4423-4429","t":"2000*0.95/0.94+2000*0.95/0.94"},"202643":{"o":"4346","t":"2000*0.7/0.94"},"202645":{"o":"4443","t":"2000*0.5/0.94"},"202648":{"o":"4414","t":"2000*0.79/0.94"},"202649":{"o":"4460","t":"4000*0.5/0.94"},"202650":{"t":"7500"},"202651":{"t":"7500"},"202652":{"t":"7500"},"202701":{"t":"7500"},"202702":{"t":"7500"},"202703":{"t":"7500"},"202704":{"t":"7500"},"202705":{"t":"7500"},"202706":{"t":"7500"},"202707":{"t":"7500"},"202708":{"t":"7500"},"202709":{"t":"7500"}}},{"id":"m79","grp":"Pes","name":"1,3 Dtex 38 mm Pes Ecru LS","code":"MF-PL-SASA-000071-000000","note":"","rows":{"202638":{"o":"4406","t":"3000*0.6/0.85","s":"26693"},"202639":{"c":"29856","o":"4452","t":"10000*0.7/0.85","g":"25000"},"202640":{"o":"4198-4200","t":"10000*0.6/0.94+10000*0.65/0.94"},"202641":{"o":"4322","t":"3000*0.85/0.92"},"202642":{"o":"4352","t":"2000*0.6/0.94"},"202644":{"o":"4455","t":"3000*0.6/0.85"},"202645":{"o":"4199","t":"10000*0.6/0.94"},"202647":{"o":"4218-4407","t":"10000*0.28/0.94+3000*0.6/0.85"},"202650":{"o":"4263-4415","t":"5000*0.25/0.94+3000*0.77/0.94"},"202651":{"o":"4264","t":"5000*0.22/0.94"}}},{"id":"m80","grp":"Pes","name":"1,3 Dtex 38 mm Pes Ecru LS ( İNDORAMA YERİNE BR)","code":"MF-PL-XINGBANG-RELLIANCE-000088-000000","note":"","rows":{}},{"id":"m81","grp":"Pes","name":"1,56 Dtex 38 mm Pes Ecru LS","code":"MF-PL-INDORAMA-000048-000000","note":"HALI İPLİKLERİ İÇİN KULLAN","rows":{"202638":{"s":"3249"}}},{"id":"m82","grp":"Pes","name":"1,7 Dtex 38 mm BLACK Pes","code":"MF-PL-SASA-000009-900010","note":"","rows":{}},{"id":"m83","grp":"Pes","name":"1,54 Dtex 38 mm BLACK Pes (SASA YERİNE)RECYCLE 500","code":"MF-PL-JB Ecotex-000094-900055","note":"ÖRMECİ İÇİN","rows":{"202638":{"s":"9640"}}},{"id":"m84","grp":"Pes","name":"1,54 Dtex 38 mm BLACK Pes (SASA YERİNE)RECYCLE 500","code":"MF-PL-Ganesha-000098-900055","note":"","rows":{"202638":{"s":"4191"}}},{"id":"m85","grp":"Pes","name":"1,3 Dtex 38 mm BROWN Pes","code":"MF-PL-000009-160006","note":"","rows":{"202638":{"s":"2908"}}},{"id":"m86","grp":"Pes","name":"NOPELİ POLYESTER","code":"MF-PL-000040-000000","note":"","rows":{"202638":{"s":"191"},"202647":{"o":"4414","t":"2000*0.01/0.94"},"202648":{"o":"4415","t":"3000*0.07/0.94"}}},{"id":"m87","grp":"Pes","name":"kesilmiş pes low shrink","code":"MF-PL-000043-000000","note":"","rows":{}},{"id":"m88","grp":"Pes","name":"polyester grisuten 11","code":"MF-PL-000054-000000","note":"","rows":{}},{"id":"m89","grp":"Pes","name":"polyester grisuten 12","code":"MF-PL-000055-000000","note":"","rows":{"202638":{"s":"4956"},"202640":{"o":"4409","t":"2000*0.8/0.9"},"202642":{"c":"30039","g":"15000"},"202644":{"o":"4399-4400","t":"8000/0.94"},"202649":{"o":"4401-4402","t":"8000/0.94"}}},{"id":"m90","grp":"Pes","name":"polyester grisuten steingra sd 1,5","code":"MF-PL-000015-000000","note":"","rows":{"202638":{"s":"3546"}}},{"id":"m91","grp":"Pes","name":"1,3 Dtex 38 mm Pes Ecru GRS SUPER WHITE","code":"MF-PL-000014-000000","note":"","rows":{"202638":{"s":"1990"}}},{"id":"m92","grp":"Pes","name":"1,3 Dtex 38 mm Pes Ecru BENMA SD SUPER WHITE P.C BM10","code":"MF-PL-000104-000000","note":"","rows":{}},{"id":"m93","grp":"Pes","name":"1,3 Dtex 38 mm Pes SD BENMA SUPER WHITE P+PRE.C BM05","code":"MF-PL-000105-000000","note":"","rows":{}},{"id":"m94","grp":"Viscose so Fr","name":"SO FR 1,67 Dtex 38 mm Ecru","code":"MF-VI-000025-000000","note":"","rows":{"202638":{"c":"51mm","s":"6198"},"202639":{"c":"38mm","o":"velovis","t":"7000*0.51/0.89","g":"2211"},"202643":{"o":"4369-4370","t":"1200*0.6/0.94"},"202644":{"o":"velovis","t":"7000*0.51/0.89"},"202645":{"c":"29816-38mm","o":"4390","t":"1500*0.3/0.94","g":"18000"},"202647":{"o":"velovis","t":"7000*0.51/0.89"},"202651":{"o":"velovis","t":"7000*0.51/0.89"},"202703":{"o":"velovis","t":"7000*0.51/0.89"},"202707":{"o":"velovis","t":"7000*0.51/0.89"}}},{"id":"m95","grp":"Viscose so Fr","name":"SO FR Ecru 51 MM","code":"MF-VI-000031-000000","note":"","rows":{}},{"id":"m96","grp":"Viscose so Fr","name":"Lenzing FR Royal Blue","code":"MF-VI-000006-420007","note":"","rows":{}},{"id":"m97","grp":"Viscose so Fr","name":"Lenzing FR Navy Blue","code":"MF-VI-000006-480026","note":"","rows":{}},{"id":"m98","grp":"Viscose so Fr","name":"Lenzing FR Ecru","code":"MF-VI-000006-000000","note":"","rows":{}},{"id":"m99","grp":"Viscose so Fr","name":"Lenzing FR 1,7 dtex 40 mm","code":"MF-VI-000037-000000","note":"","rows":{"202638":{"s":"2173"}}},{"id":"m100","grp":"Viscose so Fr","name":"Lenzing FR Black 51 mm","code":"MF-VI-000055-900003","note":"","rows":{"202638":{"s":"53"}}},{"id":"m101","grp":"Viscose","name":"38 mm Ecru Viscose","code":"MF-VI-000001-000000","note":"","rows":{"202638":{"s":"14005"},"202639":{"c":"29318","o":"4360","t":"5000*0.33/0.94","g":"24000"},"202641":{"o":"4467","t":"100*0.9/0.94"},"202642":{"o":"4456","t":"3000*0.45/0.94"},"202646":{"o":"4379","t":"2000*0.33/0.94"}}},{"id":"m102","grp":"Viscose","name":"38 mm Ekru Ecovero 1,3","code":"MF-VI-000048-000000","note":"","rows":{}},{"id":"m103","grp":"Viscose","name":"Black Viscose","code":"MF-VI-000033-900012","note":"","rows":{"202638":{"s":"1462"},"202648":{"c":"29907","g":"24000"},"202650":{"o":"4398","t":"13000*0.95/0.9"},"202651":{"o":"3861","t":"5000*0.15/0.92"}}},{"id":"m104","grp":"Viscose","name":"Birla Black Viscose 1,3 dtex 38 mm","code":"MF-VI-000051-900084","note":"","rows":{}},{"id":"m105","grp":"Viscose","name":"Blue Viscose 1,7 BİRLA","code":"MF-VI-000003-420015","note":"","rows":{"202638":{"s":"4002"},"202639":{"o":"3854","t":"3600*0.15/0.94"},"202640":{"o":"3855","t":"3600*0.15/0.94"},"202642":{"o":"3856","t":"3600*0.15/0.94"},"202644":{"o":"3857","t":"3600*0.15/0.94"},"202647":{"o":"3858","t":"3600*0.15/0.94"},"202649":{"o":"3859","t":"3600*0.15/0.94"},"202650":{"o":"3860","t":"2800*0.15/0.94"}}},{"id":"m106","grp":"Viscose","name":"Blue Viscose  1,3","code":"MF-VI-000001-420004","note":"","rows":{}},{"id":"m107","grp":"Viscose","name":"Kırmızı Viscose","code":"MF-VI-000003-036005","note":"","rows":{}},{"id":"m108","grp":"Viscose","name":"Mou Brown","code":"MF-VI-000059-120017","note":"","rows":{"202642":{"o":"4423-4429","t":"2000*0.05/0.94+2000*0.05/0.94","g":"300"},"202643":{"o":"4464","t":"1000*0.05/0.94"}}},{"id":"m109","grp":"Viscose","name":"38 mm Ecovero 1,3","code":"MF-VI-000049-900083","note":"","rows":{}},{"id":"m110","grp":"Linen-Hemp","name":"NORMAL LINEN ( ROSA / MELINA - JULIE )","code":"VF-LI-000001-000000","note":"","rows":{}},{"id":"m111","grp":"Linen-Hemp","name":"EXTRA FINE LINEN ( PRCTX - SUBLINA - HONEY )","code":"VF-LI-000002-000000","note":"","rows":{}},{"id":"m112","grp":"Linen-Hemp","name":"FASON KASARLATILMIŞ KETEN","code":"VF-LI-000002-810009","note":"","rows":{"202638":{"s":"448"},"202639":{"c":"fason","o":"4465","t":"500*0.3/0.9","g":"1130"},"202641":{"o":"4352","t":"2000*0.4/0.9"}}},{"id":"m113","grp":"Linen-Hemp","name":"KENEVIR","code":"VF-HA-000001-000000","note":"","rows":{}},{"id":"m114","grp":"Linen-Hemp","name":"KENEVIR DEGUMMED","code":"VF-HA-000002-000000","note":"","rows":{"202638":{"s":"827"}}},{"id":"m115","grp":"Linen-Hemp","name":"SÜPER İNCE KETEN","code":"VF-LI-000009-000000","note":"","rows":{"202638":{"o":"4406","t":"3000*0.41/0.85","s":"21891"},"202640":{"o":"4452","t":"10000*0.3/0.9"},"202641":{"o":"4478","t":"1000*0.5/0.9"},"202642":{"o":"4456","t":"3000*0.55/0.9"},"202643":{"o":"4476","t":"2000*0.3/0.9"},"202644":{"o":"4455","t":"3000*0.4/0.9"},"202646":{"o":"4407","t":"3000*0.41/0.85"},"202647":{"o":"4395","t":"2000*0.3/0.9"}}},{"id":"m116","grp":"Silk-Cash-Wool","name":"SILK -TYPE 1","code":"AF-SE-000001-000000","note":"","rows":{"202638":{"s":"129"}}},{"id":"m117","grp":"Silk-Cash-Wool","name":"SILK -TYPE 3","code":"AF-SE-000005-000000","note":"","rows":{}},{"id":"m118","grp":"Silk-Cash-Wool","name":"SILK BOURETTE","code":"AF-SE-000002-000000","note":"","rows":{}},{"id":"m119","grp":"Silk-Cash-Wool","name":"26 mm Cashmere  Colour","code":"AF-WS-000001-000000","note":"","rows":{}},{"id":"m120","grp":"Silk-Cash-Wool","name":"22-24 mm Cashmere  Colour","code":"AF-WS-000009-000000","note":"","rows":{"202638":{"s":"635"},"202640":{"o":"4349","t":"5000*0.085/0.9"},"202647":{"c":"sas yok","g":"800"},"202648":{"c":"boyaya gidecek","o":"4398","t":"13000*0.045/0.88"}}},{"id":"m121","grp":"Silk-Cash-Wool","name":"26 mm Cashmere  Black for LOUVRE","code":"AF-WS-000001-900023","note":"","rows":{"202638":{"s":"156"}}},{"id":"m122","grp":"Silk-Cash-Wool","name":"26 mm Cashmere  Light Colour","code":"AF-WS-000001-00000L","note":"","rows":{"202638":{"o":"4343-4344","t":"2000*0.085/0.9","s":"779"},"202645":{"o":"4375-4376","t":"3000*0.085/0.9"},"202648":{"o":"4411","t":"2000*0.085/0.9"}}},{"id":"m123","grp":"Silk-Cash-Wool","name":"26 mm Cashmere White for White","code":"AF-WS-000003-00000L","note":"","rows":{}},{"id":"m124","grp":"Silk-Cash-Wool","name":"32 mm Cashmere","code":"AF-WS-000002-00000L","note":"","rows":{}},{"id":"m125","grp":"Silk-Cash-Wool","name":"19,5 Mic Wool","code":"AF-WO-000001-00000L","note":"","rows":{}},{"id":"m126","grp":"Silk-Cash-Wool","name":"21,5 Mic Wool","code":"AF-WO-000002-00000L","note":"","rows":{}},{"id":"m127","grp":"Silk-Cash-Wool","name":"24-26 mm SFA Cashmere","code":"AF-WS-000006-000000","note":"","rows":{}},{"id":"m128","grp":"Silk-Cash-Wool","name":"44 mm Cashmere","code":"AF-WS-000010-00000L","note":"","rows":{"202638":{"s":"532"}}},{"id":"m129","grp":"Silk-Cash-Wool","name":"23 Mic Wool","code":"AF-WO-000003-00000L","note":"","rows":{"202638":{"s":"786+2141"},"202642":{"o":"4266","t":"2000*0.28/0.9"},"202644":{"o":"4265","t":"2500*0.18/0.9"},"202645":{"o":"4457","t":"3000*0.18/0.94"},"202647":{"o":"4408","t":"2000*0.28/0.9"},"202648":{"o":"4410","t":"2500*0.18/0.9"}}},{"id":"m130","grp":"Silk-Cash-Wool","name":"19,5 Mic Wool RWS","code":"AF-WO-000038-00000L","note":"","rows":{"202638":{"s":"4800"},"202640":{"o":"4325","t":"5000*0.535/0.85"},"202641":{"o":"4377-4378","t":"1500*0.535/0.85"},"202645":{"o":"4374","t":"1500*0.13/0.88"},"202646":{"o":"4403","t":"10000*0.13/0.9"}}},{"id":"m131","grp":"Silk-Cash-Wool","name":"19,5 Mic Wool TEC","code":"AF-WO-000048-000000","note":"","rows":{"202638":{"s":"39"},"202639":{"g":"530"},"202644":{"o":"4404","t":"1500*0.15/0.94"}}},{"id":"m132","grp":"Silk-Cash-Wool","name":"19,5 Mic Wool TEC RWS","code":"AF-WO-000047-000000","note":"","rows":{}},{"id":"m133","grp":"Silk-Cash-Wool","name":"21 Mic Wool","code":"AF-WO-000002-00000L","note":"","rows":{"202638":{"s":"109"},"202639":{"c":"tops","o":"4226","t":"7000*0.285/0.89","g":"10905"},"202643":{"o":"4227","t":"7000*0.285/0.89"},"202647":{"o":"4228","t":"7000*0.285/0.89"},"202651":{"o":"4229","t":"7000*0.285/0.89"},"202703":{"o":"4230","t":"7000*0.285/0.89"},"202709":{"o":"4368","t":"7000*0.285/0.89"}}},{"id":"m134","grp":"Polipropilen","name":"ASOTA FH100A SD 2,8 dtex 50mm  Ekru","code":"MF-PP-000004-000000","note":"","rows":{}},{"id":"m135","grp":"Polipropilen","name":"ASOTA FH100A SD 2,2 dtex 50mm  FUJI","code":"MF-PP-000002-00000S","note":"","rows":{"202638":{"s":"4181"}}},{"id":"m136","grp":"Polipropilen","name":"ASOTA SD 2,2 dtex 50mm  BLACK -9525-F","code":"MF-PP-000002-900045","note":"","rows":{"202638":{"s":"1066"}}},{"id":"m137","grp":"Polipropilen","name":"ELYAF POLIPROPILEN SD 2,8dtex 50mm","code":"MF-PP-000006-000000","note":"","rows":{}},{"id":"m138","grp":"Nylon","name":"1,7 DTEX 40MM HT Nylon","code":"MF-PA-000014-000003-000000","note":"","rows":{"202638":{"o":"3854","t":"3600*0.55/0.92","s":"19700"},"202639":{"o":"VELOVIS","t":"7000*0.205/0.89"},"202640":{"o":"3855","t":"3600*0.55/0.94"},"202641":{"o":"4390","t":"1500*0.05/0.94"},"202642":{"o":"3769-3856","t":"9000*0.09/0.92+3600*0.55/0.92"},"202643":{"c":"29525","o":"3770-VELOVIS","t":"8000*0.09/0.92+7000*0.205/0.89","g":"9000"},"202644":{"o":"3771-3857","t":"8000*0.09/0.92+3600*0.55/0.92"},"202646":{"o":"3858","t":"3600*0.55/0.92"},"202647":{"o":"VELOVIS","t":"7000*0.205/0.89"},"202648":{"c":"29946","g":"9000"},"202649":{"o":"3859","t":"3600*0.55/0.92"},"202650":{"o":"3860","t":"3600*0.55/0.92"},"202651":{"o":"VELOVIS","t":"7000*0.205/0.89"},"202652":{"o":"3861","t":"5000*0.55/0.92"},"202703":{"o":"VELOVIS","t":"7000*0.205/0.89"},"202705":{"o":"4317-4318-4319","t":"23000*0.09/0.92"},"202712":{"o":"VELOVIS","t":"7000*0.205/0.89"}}},{"id":"m139","grp":"Micromodal - Modal","name":"1,3 Dtex Modal","code":"MF-MD-000001-000000","note":"","rows":{"202638":{"s":"17517"},"202645":{"o":"4265","t":"2500*0.8/0.94"},"202647":{"o":"4410","t":"2500*0.8/0.94"}}},{"id":"m140","grp":"Micromodal - Modal","name":"0,9 Dtex Micro Modal","code":"MF-MD-000004-000000","note":"","rows":{"202638":{"s":"1903"}}}]};
+const LS='hammaddeStokTakip.v2', H=26, FUT=40;
+const $=id=>document.getElementById(id);
+const fmt=n=>(n==null||isNaN(n))?'':Math.round(n).toLocaleString('tr-TR');
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const ORDER={'KRİTİK':0,'UYARI':1,'İZLE':2,'YETERLİ':3,'PASİF':4};
+let D, V={filter:null,sort:{k:'status',d:1},open:null,past:false};
+
+/* ---- storage: tek noktadan (ileride sunucuya taşınabilir) ---- */
+function loadData(){try{const d=JSON.parse(localStorage.getItem(LS)||'null');if(d&&d.mats)return d}catch(e){}return JSON.parse(JSON.stringify({...SEED,thK:4,thU:8}))}
+let saveT;
+function saveData(){try{localStorage.setItem(LS,JSON.stringify(D));$('saved').textContent='Kaydedildi';clearTimeout(saveT);saveT=setTimeout(()=>$('saved').textContent='',1500)}catch(e){$('saved').textContent='Kaydedilemedi'}}
+
+/* ---- hesap ---- */
+function ev(s){ // "3000*0,6/0,94" gibi ifadeleri hesaplar
+  if(s==null)return 0; s=String(s).trim(); if(!s)return 0;
+  const t=s.replace(/\s/g,'').replace(/,/g,'.');
+  if(!/^[\d.+\-*/()]+$/.test(t))return NaN;
+  try{const v=Function('"use strict";return('+t+')')();return isFinite(v)?v:NaN}catch(e){return NaN}
+}
+const nk=k=>{const w=k%100,y=Math.floor(k/100);return w>=52?(y+1)*100+1:k+1};
+const pk=k=>{const w=k%100,y=Math.floor(k/100);return w<=1?(y-1)*100+52:k-1};
+const wl=k=>k?`${k%100}/${Math.floor(k/100)}`:'—';
+const curK=()=>D.yr*100+D.wk;
+function horizon(n){const a=[];let k=curK();for(let i=0;i<n;i++){a.push(k);k=nk(k)}return a}
+function series(m,last){ // başlangıçtan 'last' haftasına kadar hafta hafta bakiye
+  const ks=Object.keys(m.rows).map(Number); let k=Math.min(curK(),...ks); const out=[]; let bal=0;
+  while(k<=last){const r=m.rows[k]||{};const open=(r.s!=null&&String(r.s).trim()!=='')?(ev(r.s)||0):bal;
+    const g=ev(r.g)||0,t=ev(r.t)||0;bal=open+g-t;out.push({k,open,g,t,bal});k=nk(k)}
+  return out;
+}
+function calc(m){
+  const K=horizon(H),cur=K[0],last=K[H-1];const sr=series(m,last);const by={};sr.forEach(x=>by[x.k]=x);
+  const c=by[cur];const now=c.open+c.g;let f4=0,f26=0,fin=0;
+  K.forEach((k,i)=>{const x=by[k];if(i<4)f4+=x.t;f26+=x.t;if(i>0)fin+=x.g});
+  const bal=K.map(k=>by[k].bal),inW=K.map(k=>by[k].g>0),fn=bal.findIndex(b=>b<-0.5)+1;
+  /* İlk gelecek giriş: bu haftadan sonraki ilk stok girişi (miktar + hafta) */
+  let g1=0,g1W=null;
+  for(let i=1;i<K.length;i++){const x=by[K[i]];if(x.g>0){g1=x.g;g1W=K[i];break}}
+  let status;
+  if(Math.abs(now)<1&&!f26&&!fin)status='PASİF';else if(!fn)status='YETERLİ';else if(fn<=D.thK)status='KRİTİK';else if(fn<=D.thU)status='UYARI';else status='İZLE';
+  return{K,now,f4,f26,fin,g1,g1W,bal,inW,fn,min:Math.min(...bal),cover:fn?fn-1:null,firstNeg:fn?K[fn-1]:null,status};
+}
+
+/* ---- ana liste ---- */
+function render(){
+  const rows=D.mats.map(m=>({m,...calc(m)})); const K=horizon(H);
+  const cnt={};rows.forEach(r=>cnt[r.status]=(cnt[r.status]||0)+1);
+  $('sbar').innerHTML=Object.keys(ORDER).map(s=>`<button class="sbtn s-${s}" data-s="${s}" aria-pressed="${V.filter===s}"><b>${cnt[s]||0}</b><span>${s[0]+s.slice(1).toLocaleLowerCase('tr')}</span></button>`).join('');
+  $('sbar').querySelectorAll('.sbtn').forEach(b=>b.onclick=()=>{V.filter=V.filter===b.dataset.s?null:b.dataset.s;render()});
+  const gs=[...new Set(D.mats.map(m=>m.grp))],gv=$('grp').value;
+  $('grp').innerHTML='<option value="">Tüm gruplar</option>'+gs.map(g=>`<option${g===gv?' selected':''}>${esc(g)}</option>`).join('');
+  $('grps').innerHTML=gs.map(g=>`<option value="${esc(g)}">`).join('');
+  const cols=[['grp','Grup'],['name','Hammadde'],['now','Mevcut stok kg',1],['f4','4 haftalık tüketim',1],['g1','İlk gelecek giriş kg',1],['g1W','İlk gelecek giriş haftası',1],['fin','Toplam giriş kg',1],['cover','Kaç hafta yeter',1],['firstNeg','İlk eksik hafta'],['min','En düşük bakiye',1],['status','Durum'],['rw','26 haftalık bakiye']];
+  $('thead').innerHTML=cols.map(([k,t,n])=>k==='rw'?`<th><div>${t}</div><div class="wkhead">${K.map((x,i)=>`<span>${i%4===0?x%100:''}</span>`).join('')}</div></th>`:`<th class="${n?'num':''}" data-k="${k}">${t}${V.sort.k===k?(V.sort.d>0?' ▲':' ▼'):''}</th>`).join('');
+  $('thead').querySelectorAll('th[data-k]').forEach(th=>th.onclick=()=>{const k=th.dataset.k;V.sort={k,d:V.sort.k===k?-V.sort.d:1};render()});
+  const q=$('q').value.trim().toLocaleLowerCase('tr'),g=$('grp').value,hp=$('hidePasif').checked;
+  const list=rows.filter(r=>(!V.filter||r.status===V.filter)&&(!g||r.m.grp===g)&&(!hp||r.status!=='PASİF'||V.filter==='PASİF')&&(!q||(r.m.name+' '+r.m.code+' '+r.m.grp).toLocaleLowerCase('tr').includes(q)));
+  const{k,d}=V.sort;
+  list.sort((a,b)=>{if(k==='status')return d*((ORDER[a.status]-ORDER[b.status])||((a.fn||99)-(b.fn||99)));
+    const av=k==='grp'||k==='name'?a.m[k]:a[k],bv=k==='grp'||k==='name'?b.m[k]:b[k];if(av==null)return 1;if(bv==null)return -1;
+    return typeof av==='string'?d*av.localeCompare(bv,'tr'):d*(av-bv)});
+  V.list=list;
+  $('tbody').innerHTML=list.map((r,i)=>{const mx=Math.max(1,...r.bal);
+    const strip=r.bal.map((b,j)=>`<i class="${r.inW[j]?'in':''}" style="background:${b<-0.5?'var(--red)':b<0.5?'#E4E8EC':`rgba(47,102,144,${(0.25+0.75*b/mx).toFixed(2)})`}" title="${wl(K[j])}: ${fmt(b)} kg"></i>`).join('');
+    const p=r.status==='PASİF';
+    return `<tr data-id="${r.m.id}" tabindex="0"><td class="grp">${esc(r.m.grp)}</td><td class="nm">${esc(r.m.name)}<div class="code">${esc(r.m.code)}</div></td>
+      <td class="num ${r.now<0?'neg':''}">${fmt(r.now)}</td><td class="num">${fmt(r.f4)}</td>
+      <td class="num">${r.g1?fmt(r.g1):'—'}</td><td class="num">${r.g1W?wl(r.g1W):'—'}</td><td class="num">${fmt(r.fin)}</td>
+      <td class="num">${p?'—':r.cover==null?'26+':r.cover}</td><td>${p?'—':wl(r.firstNeg)}</td><td class="num ${r.min<-0.5?'neg':''}">${fmt(r.min)}</td>
+      <td><span class="pill p-${r.status}">${r.status}</span></td><td><div class="runway">${strip}</div></td></tr>`}).join('')
+    ||`<tr><td colspan="12" style="padding:30px;text-align:center;color:var(--ink2)">Filtreye uyan hammadde yok. Aramayı veya durum seçimini temizleyin.</td></tr>`;
+  $('tbody').querySelectorAll('tr[data-id]').forEach(tr=>{tr.onclick=()=>openM(tr.dataset.id);tr.onkeydown=e=>{if(e.key==='Enter')openM(tr.dataset.id)}});
+}
+
+/* ---- hammadde kartı (Excel bloğunun karşılığı) ---- */
+const GCOLS=[['s','Sayım / açılış stoku',1],['c','Sözleşme no'],['g','Stok girişi kg',1],['o','İplik sipariş no'],['t','Tüketim (formül)',1]];
+function openM(id){
+  const m=D.mats.find(x=>x.id===id);if(!m)return;V.open=id;
+  const cur=curK(); const ks=Object.keys(m.rows).map(Number);
+  let first=Math.min(cur,...ks), last=cur; for(let i=0;i<FUT;i++)last=nk(last); last=Math.max(last,...ks);
+  const weeks=[];for(let k=first;k<=last;k=nk(k))weeks.push(k);
+  $('drawer').innerHTML=`
+  <div class="dh">
+    <div class="fields">
+      <label>Hammadde<input class="big" data-f="name" value="${esc(m.name)}"></label>
+      <label>Grup<input data-f="grp" list="grps" value="${esc(m.grp)}"></label>
+      <label>ERP kodu<input data-f="code" value="${esc(m.code)}"></label>
+      <label>Not<input data-f="note" value="${esc(m.note)}"></label>
+    </div>
+    <div class="acts"><button class="tbtn del" id="delM">Sil</button><button class="x" id="cls" aria-label="Kapat">×</button></div>
+  </div>
+  <div class="stats" id="dstats"></div>
+  <div class="sec chart" id="dchart"></div>
+  <div class="sec">
+    <h3>Haftalık hareketler <small>Sarı hücreler Excel'deki gibi düzenlenir; Enter alt satıra geçer.</small>
+      <label style="margin-left:auto;font-size:13px;font-weight:400;display:flex;gap:6px;align-items:center"><input type="checkbox" id="past" ${V.past?'checked':''}> Geçmiş haftaları göster</label></h3>
+    <div style="overflow-x:auto"><table class="grid"><thead><tr><th>Hafta</th>${GCOLS.map(c=>`<th class="${c[2]?'num':''}">${c[1]}</th>`).join('')}<th class="num">Tüketim kg</th><th class="num">Kalan kg</th></tr></thead>
+    <tbody>${weeks.map(k=>{const r=m.rows[k]||{};const cl=k===cur?'cur':k<cur?'past':'';
+      return `<tr data-k="${k}" class="${cl}" ${k<cur&&!V.past?'hidden':''}><td class="wk">${wl(k)}</td>${GCOLS.map(c=>`<td><input class="${c[2]?'n':''}" data-c="${c[0]}" value="${esc(r[c[0]]??'')}" ${c[0]==='t'?'placeholder=""':''}></td>`).join('')}<td class="calc num" data-o="t"></td><td class="calc num" data-o="b"></td></tr>`}).join('')}</tbody></table></div>
+    <p class="hint">Sayım / açılış stoku: o haftanın başındaki fiili stok (girilirse bakiye bu değerden devam eder). Tüketim alanına 3000*0,6/0,94 gibi formül yazabilirsiniz.</p>
+  </div>`;
+  const dr=$('drawer');
+  dr.querySelectorAll('.fields input').forEach(inp=>inp.onchange=()=>{m[inp.dataset.f]=inp.value.trim();saveData();render()});
+  dr.querySelectorAll('.grid input').forEach(inp=>{
+    inp.onchange=()=>{const k=inp.closest('tr').dataset.k,c=inp.dataset.c,v=inp.value.trim();
+      const r=m.rows[k]||(m.rows[k]={}); if(v)r[c]=v;else delete r[c]; if(!Object.keys(r).length)delete m.rows[k];
+      saveData();refreshM(m);render()};
+    inp.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();let tr=inp.closest('tr').nextElementSibling;while(tr&&tr.hidden)tr=tr.nextElementSibling;if(tr)tr.querySelector(`input[data-c="${inp.dataset.c}"]`).focus()}};
+  });
+  $('past').onchange=e=>{V.past=e.target.checked;dr.querySelectorAll('.grid tr.past').forEach(tr=>tr.hidden=!V.past)};
+  $('cls').onclick=closeM;
+  $('delM').onclick=()=>{if(confirm(`"${m.name}" ve tüm hareketleri silinsin mi?`)){D.mats=D.mats.filter(x=>x!==m);saveData();closeM();render()}};
+  refreshM(m);
+  dr.classList.add('open');$('scrim').classList.add('open');dr.setAttribute('aria-hidden','false');
+  const ci=dr.querySelector('tr.cur input[data-c="t"]');if(ci)ci.focus({preventScroll:true});
+  const ct=dr.querySelector('tr.cur');if(ct)setTimeout(()=>ct.scrollIntoView({block:'center'}),50);
+}
+function refreshM(m){
+  const r=calc(m),dr=$('drawer'),p=r.status==='PASİF';
+  const lastK=Math.max(...[...dr.querySelectorAll('.grid tr')].slice(1).map(t=>+t.dataset.k));
+  const by={};series(m,lastK).forEach(x=>by[x.k]=x);
+  dr.querySelectorAll('.grid tbody tr').forEach(tr=>{const x=by[tr.dataset.k];if(!x)return;
+    const tc=tr.querySelector('[data-o=t]'),bc=tr.querySelector('[data-o=b]');
+    tc.textContent=x.t?fmt(x.t):'';bc.textContent=fmt(x.bal);bc.classList.toggle('neg',x.bal<-0.5);
+    tr.querySelectorAll('input.n').forEach(i=>i.classList.toggle('bad',i.value.trim()!==''&&isNaN(ev(i.value))))});
+  $('dstats').innerHTML=`<div><small>Durum</small><b><span class="pill p-${r.status}">${r.status}</span></b></div>
+    <div><small>Mevcut stok</small><b class="${r.now<0?'neg':''}">${fmt(r.now)} kg</b></div>
+    <div><small>Ort. haftalık tüketim</small><b>${fmt(r.f26/H)} kg</b></div>
+    <div><small>Yeter</small><b>${p?'—':r.cover==null?'26+ hafta':r.cover+' hafta'}</b></div>
+    <div><small>İlk eksik hafta</small><b class="${r.firstNeg?'neg':''}">${p?'—':wl(r.firstNeg)}</b></div>`;
+  const W=900,Hh=170,pd=28,max=Math.max(1,...r.bal),min=Math.min(0,...r.bal),sc=v=>pd+(Hh-2*pd)*(max-v)/(max-min),bw=(W-60)/H,zero=sc(0);
+  $('dchart').innerHTML=`<h3>26 haftalık bakiye</h3><svg viewBox="0 0 ${W} ${Hh}" role="img" aria-label="26 haftalık bakiye grafiği">
+    <line x1="46" x2="${W-6}" y1="${zero}" y2="${zero}" stroke="#1C2A3A"/>
+    <text x="42" y="${sc(max)+4}" font-size="10" text-anchor="end" fill="#51606F">${fmt(max)}</text><text x="42" y="${zero+4}" font-size="10" text-anchor="end" fill="#51606F">0</text>
+    ${min<0?`<text x="42" y="${sc(min)+4}" font-size="10" text-anchor="end" fill="#B3261E">${fmt(min)}</text>`:''}
+    ${r.bal.map((b,i)=>{const x=50+i*bw,y=Math.min(sc(b),zero),h=Math.max(1,Math.abs(sc(b)-zero));
+      return `<rect x="${x+1}" y="${y}" width="${bw-2}" height="${h}" fill="${b<-0.5?'#B3261E':'#2F6690'}"><title>${wl(r.K[i])}: ${fmt(b)} kg</title></rect>${r.inW[i]?`<rect x="${x+1}" y="${pd-12}" width="${bw-2}" height="4" fill="#1C2A3A"/>`:''}<text x="${x+bw/2}" y="${Hh-6}" font-size="10" text-anchor="middle" fill="#8A96A2">${r.K[i]%100}</text>`}).join('')}</svg>`;
+}
+function closeM(){V.open=null;$('drawer').classList.remove('open');$('scrim').classList.remove('open');$('drawer').setAttribute('aria-hidden','true')}
+$('scrim').onclick=closeM;document.addEventListener('keydown',e=>{if(e.key==='Escape'&&V.open)closeM()});
+
+/* ---- üst çubuk ve araçlar ---- */
+function syncHead(){$('wk').value=D.wk;$('yr').value=D.yr;$('thK').value=D.thK;$('thU').value=D.thU}
+function setWeek(k){D.wk=k%100;D.yr=Math.floor(k/100);syncHead();saveData();render();if(V.open)openM(V.open)}
+$('prevW').onclick=()=>setWeek(pk(curK()));$('nextW').onclick=()=>setWeek(nk(curK()));
+$('wk').onchange=()=>{const v=+$('wk').value;if(v>=1&&v<=52)setWeek(D.yr*100+v);else syncHead()};
+$('yr').onchange=()=>{const v=+$('yr').value;if(v>2000)setWeek(v*100+D.wk);else syncHead()};
+['thK','thU'].forEach(id=>$(id).onchange=()=>{const v=+$(id).value;if(v>0){D[id]=v;saveData();render()}else syncHead()});
+['q','grp','hidePasif'].forEach(id=>$(id).addEventListener('input',render));
+$('addM').onclick=()=>{const g=$('grp').value||(D.mats[0]||{}).grp||'';const m={id:'m'+Date.now(),grp:g,name:'Yeni hammadde',code:'',note:'',rows:{}};
+  D.mats.push(m);saveData();render();openM(m.id);setTimeout(()=>{const i=$('drawer').querySelector('input[data-f=name]');i.focus();i.select()},60)};
+$('csv').onclick=()=>{const h=['Grup','Hammadde','ERP kodu','Mevcut stok kg','4 haftalık tüketim kg','İlk gelecek giriş kg','İlk gelecek giriş haftası','Toplam giriş kg','Kaç hafta yeter','İlk eksik hafta','En düşük bakiye kg','Durum'];
+  const L=[h.join(';')].concat((V.list||[]).map(r=>[r.m.grp,r.m.name,r.m.code,Math.round(r.now),Math.round(r.f4),r.g1?Math.round(r.g1):'',r.g1W?wl(r.g1W):'',Math.round(r.fin),r.cover==null?H+'+':r.cover,wl(r.firstNeg),Math.round(r.min),r.status].map(v=>`"${String(v).replace(/"/g,'""')}"`).join(';')));
+  dl(new Blob(['\ufeff'+L.join('\n')],{type:'text/csv'}),`hammadde_ozet_hafta${D.wk}_${D.yr}.csv`)};
+function dl(b,n){const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=n;a.click()}
+$('bkp').onclick=()=>dl(new Blob([JSON.stringify(D)],{type:'application/json'}),`hammadde_yedek_hafta${D.wk}_${D.yr}.json`);
+$('rst').onclick=()=>$('file').click();
+$('file').onchange=e=>{const f=e.target.files[0];if(!f)return;const rd=new FileReader();
+  rd.onload=()=>{try{const d=JSON.parse(rd.result);if(!d.mats)throw new Error('Hammadde listesi yok');if(confirm('Paneldeki mevcut veriler yedektekiyle değiştirilsin mi?')){D=d;saveData();syncHead();closeM();render()}}
+    catch(err){alert('Yedek dosyası okunamadı: '+err.message)}};rd.readAsText(f);e.target.value=''};
+
+D=loadData();syncHead();render();
+</script>
+</body>
+</html>

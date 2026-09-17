@@ -1,0 +1,2560 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TEV Tablosu Oluşturma Paneli</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
+<style>
+:root{
+  --paper:#E4E8E2; --panel:#FFFFFF; --panel-2:#F5F7F3;
+  --ink:#15201A; --ink-2:#4B5852; --ink-3:#7C8981;
+  --rule:#C3CCC4; --rule-2:#DDE3DC;
+  --ihracat:#4F8A1E; --ithalat:#BC6C21; --hesap:#8A7A00;
+  --ihracat-bg:#E3F0D3; --ithalat-bg:#FBE3CC; --hesap-bg:#FBF4C8; --mint-bg:#DDF0DD;
+  --alarm:#A6272B; --ok:#2E7D46;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:var(--paper); color:var(--ink);
+  font-family:"IBM Plex Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  font-size:15px; line-height:1.5; -webkit-font-smoothing:antialiased;
+}
+.mono{font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;font-variant-numeric:tabular-nums}
+
+/* ---- masthead ---- */
+.masthead{
+  border-bottom:2px solid var(--ink); background:var(--panel);
+  padding:18px 26px 14px; display:flex; flex-wrap:wrap; align-items:flex-end; gap:22px;
+}
+.masthead h1{
+  margin:0; font-size:23px; font-weight:600; letter-spacing:-.015em; line-height:1.15;
+}
+.masthead p{margin:3px 0 0;font-size:13px;color:var(--ink-2);max-width:56ch}
+.belge-rozet{
+  margin-left:auto; border:1px solid var(--rule); border-left:4px solid var(--ihracat);
+  padding:7px 14px; min-width:190px; background:var(--panel-2);
+}
+.belge-rozet .k{font-size:10.5px;color:var(--ink-3);letter-spacing:.02em}
+.belge-rozet .v{font-size:16px;font-weight:600}
+
+/* ---- yükleme şeridi ---- */
+.yukleme{padding:16px 26px;background:var(--panel);border-bottom:1px solid var(--rule)}
+.drop-aciklama{margin:8px 0 0;font-size:12.5px;color:var(--ink-2);line-height:1.45;max-width:104ch}
+.drop-aciklama b{font-weight:600;color:var(--ink)}
+.stage{padding:22px 26px 80px;min-width:0}
+
+/* ---- drop ---- */
+.drop{
+  border:1.5px dashed var(--rule); border-radius:10px; background:var(--panel-2); padding:16px 18px;
+  cursor:pointer; text-align:center; transition:border-color .12s,background .12s;
+}
+.drop:hover,.drop.hot{border-color:var(--ihracat);background:var(--ihracat-bg)}
+.drop b{display:block;font-size:15px;font-weight:600}
+.drop:focus-visible{outline:2px solid var(--ihracat);outline-offset:2px}
+
+/* ---- ilerleme ---- */
+.ilerleme{margin-top:12px;max-width:520px}
+.ilerleme-ust{display:flex;justify-content:space-between;gap:10px;font-size:11.5px;color:var(--ink-2);margin-bottom:5px}
+.ilerleme-ust #ilerlemeAd{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ilerleme-ray{height:5px;background:var(--rule-2);overflow:hidden}
+.ilerleme-dolu{height:100%;width:0;background:var(--ihracat);transition:width .18s ease-out}
+.drop.mesgul{opacity:.55;pointer-events:none}
+
+/* ---- arşiv çubuğu ---- */
+.arsiv{padding:13px 26px 15px;background:var(--panel-2);border-bottom:1px solid var(--rule)}
+.arsiv-baslik{display:flex;align-items:baseline;gap:12px;margin-bottom:9px}
+.arsiv-etiket{font-size:11px;color:var(--ink-3);letter-spacing:.04em;text-transform:uppercase}
+.arsiv-boyut{font-size:11px;color:var(--ink-3);margin-left:auto;font-family:"IBM Plex Mono",monospace}
+.arsiv-liste{display:flex;flex-wrap:wrap;gap:9px}
+.arsiv-not{margin:9px 0 0;font-size:12px;color:var(--ithalat);min-height:1em}
+
+.chip{
+  display:inline-flex;align-items:center;gap:2px;padding:3px 4px;
+  border:1px solid var(--rule-2);border-radius:999px;background:var(--panel);
+  transition:border-color .14s,background .14s,box-shadow .14s;
+}
+.chip:hover{border-color:var(--ink-3);box-shadow:0 1px 3px rgba(20,32,26,.09)}
+.chip button{border:0;background:transparent;font:inherit;cursor:pointer;color:var(--ink)}
+.chip .ac{
+  padding:5px 13px;border-radius:999px;font-family:"IBM Plex Mono",monospace;
+  font-size:13px;font-weight:500;letter-spacing:-.01em;line-height:1.2;white-space:nowrap;
+}
+.chip .ac:hover{background:var(--panel-2)}
+.chip .sil{
+  display:inline-flex;align-items:center;justify-content:center;flex:none;
+  width:24px;height:24px;border-radius:50%;color:var(--ink-3);
+  transition:background .14s,color .14s;
+}
+.chip .sil svg{width:13px;height:13px;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;fill:none}
+.chip .sil:hover{background:var(--alarm);color:#fff}
+.chip.aktif{background:var(--ihracat);border-color:var(--ihracat)}
+.chip.aktif .ac{color:#fff;font-weight:600}
+.chip.aktif .ac:hover{background:rgba(255,255,255,.16)}
+.chip.aktif .sil{color:rgba(255,255,255,.75)}
+.chip.aktif .sil:hover{background:rgba(255,255,255,.22);color:#fff}
+.chip.hafif{border-style:dashed;border-color:var(--rule)}
+
+.chip.silme{border-color:var(--alarm);background:#F9EAEA;padding:4px 5px 4px 14px;gap:6px}
+.chip.silme .soru{font-size:12px;font-weight:600;color:var(--alarm);white-space:nowrap}
+.chip.silme .secim{
+  border:1px solid var(--alarm);border-radius:999px;background:var(--panel);color:var(--alarm);
+  font-size:11.5px;height:26px;padding:0 12px;
+}
+.chip.silme .secim:hover:not(:disabled){background:var(--alarm);color:#fff}
+.chip.silme .secim.tam{font-weight:600}
+.chip.silme .secim:disabled{opacity:.4;cursor:not-allowed}
+.chip.silme .secim:last-child{border-color:transparent;color:var(--ink-2)}
+.chip.silme .secim:last-child:hover{background:var(--ink);color:#fff}
+
+/* ---- düğmeler ve notlar ---- */
+.ham-not{
+  margin:0;padding:9px 26px;border-bottom:1px solid var(--rule);
+  background:var(--ithalat-bg);font-size:12.5px;line-height:1.4;color:var(--ink-2);
+}
+button.birincil,button.ikincil{
+  height:36px;padding:0 18px;border:1px solid transparent;border-radius:8px;
+  font:inherit;font-size:13.5px;cursor:pointer;white-space:nowrap;
+  transition:background .14s,color .14s,border-color .14s,box-shadow .14s;
+}
+button.birincil{box-shadow:0 1px 2px rgba(20,32,26,.14)}
+button.birincil{background:var(--ihracat);border-color:var(--ihracat);color:#fff;font-weight:600}
+button.birincil:hover:not(:disabled){background:#42741a;border-color:#42741a}
+button.birincil:disabled{background:var(--rule);border-color:var(--rule);color:var(--ink-3);cursor:not-allowed}
+button.ikincil{background:transparent;border-color:var(--rule);color:var(--ink-2);font-weight:500}
+button.ikincil:hover{border-color:var(--ink);color:var(--ink);background:var(--panel-2)}
+button:focus-visible{outline:2px solid var(--ithalat);outline-offset:2px}
+
+/* ---- özet ---- */
+.ozet{display:flex;flex-wrap:wrap;gap:1px;background:var(--rule);border:1px solid var(--rule);margin-bottom:14px}
+.kutu{background:var(--panel);padding:12px 16px;flex:1 1 150px;min-width:150px}
+.kutu .k{font-size:11px;color:var(--ink-3);margin-bottom:2px}
+.kutu .v{font-size:20px;font-weight:600;letter-spacing:-.01em}
+.kutu .v small{font-size:12px;font-weight:500;color:var(--ink-3)}
+.kutu.vurgu{background:var(--hesap-bg)}
+.kutu.fark-ok .v{color:var(--ok)}
+.kutu.fark-uyari .v{color:var(--alarm)}
+
+/* ---- uyarı ---- */
+.uyari{border-left:4px solid var(--ithalat);background:var(--ithalat-bg);padding:11px 14px;margin-bottom:18px;font-size:13px}
+.uyari b{display:block;margin-bottom:3px}
+.uyari ul{margin:4px 0 0 16px;padding:0}
+
+/* ---- sekmeler ---- */
+.sekmeler{display:flex;flex-wrap:wrap;gap:2px;border-bottom:1px solid var(--rule)}
+.sekme{
+  display:inline-flex;align-items:center;gap:7px;padding:9px 14px 8px;
+  border:0;border-bottom:2px solid transparent;margin-bottom:-1px;background:transparent;
+  font:inherit;font-size:13px;font-weight:500;cursor:pointer;color:var(--ink-3);
+}
+.sekme:hover{color:var(--ink)}
+.sekme .sayi{
+  font-family:"IBM Plex Mono",monospace;font-size:11px;font-weight:500;border-radius:999px;
+  background:var(--panel-2);border:1px solid var(--rule-2);padding:1px 7px;color:var(--ink-3);
+}
+.sekme[aria-selected="true"]{color:var(--ink);font-weight:600;border-bottom-color:var(--ihracat)}
+.sekme[aria-selected="true"] .sayi{background:var(--ihracat-bg);border-color:var(--ihracat);color:var(--ihracat)}
+.sekme .sayi.uyari{background:var(--ithalat-bg);border-color:var(--ithalat);color:var(--ithalat)}
+
+/* ---- tablo ---- */
+.tablo-ust{
+  display:flex;align-items:center;gap:12px;padding:8px 2px;
+  border-bottom:1px solid var(--rule);
+}
+.tablo-bilgi{font-size:12px;color:var(--ink-3)}
+
+/* ---- seçim çubuğu ---- */
+.secim-cubugu{
+  display:flex;flex-wrap:wrap;align-items:center;gap:7px;min-height:34px;
+  padding:7px 12px;border:1px solid var(--rule);border-top:0;
+  background:var(--panel-2);font-size:12px;color:var(--ink-2);
+}
+.secim-cubugu b{color:var(--ink);font-weight:600}
+.secim-cubugu .mono{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums}
+.secim-cubugu .ayrac{color:var(--rule);margin:0 2px}
+.secim-cubugu .ipucu{color:var(--ink-3)}
+table.veri tbody td{user-select:none}
+table.veri tbody td.secili,
+tbody tr:nth-child(even) td.secili,
+tbody tr:hover td.secili{
+  background:#CFE4B0;box-shadow:inset 0 0 0 1px var(--ihracat);
+}
+table.veri tbody td.secili input{background:#fff}
+button.ikincil.kucuk{height:28px;padding:0 12px;font-size:12px;margin-left:auto}
+.tablo-kutu{overflow:auto;max-height:660px;border:1px solid var(--rule);border-top:0;background:var(--panel)}
+table.veri{border-collapse:separate;border-spacing:0;font-size:11.5px;white-space:nowrap}
+table.veri th,table.veri td{
+  border-right:1px solid var(--rule-2);border-bottom:1px solid var(--rule-2);
+  padding:4px 7px;text-align:left;background-clip:padding-box;
+}
+table.veri th:last-child,table.veri td:last-child{border-right:0}
+table.veri thead th{position:sticky;z-index:2;font-weight:600;font-size:10.5px;line-height:1.25}
+table.veri thead tr.gruplar th{z-index:3;text-align:center;letter-spacing:.02em}
+table.veri thead tr.filtreler th{padding:3px 4px;z-index:3;background:var(--panel)}
+table.veri thead tr.filtreler input{
+  width:100%;min-width:56px;box-sizing:border-box;padding:2px 5px;border:1px solid var(--rule-2);
+  border-radius:4px;background:var(--panel-2);font:inherit;font-size:11px;color:var(--ink);
+}
+table.veri thead tr.filtreler input:focus{outline:1.5px solid var(--ihracat);outline-offset:-1px;background:#fff}
+th.g-ihracat{background:var(--ihracat-bg)}
+th.g-ithalat{background:var(--ithalat-bg)}
+th.g-hesap{background:var(--hesap-bg)}
+th.g-odeme{background:var(--mint-bg)}
+td.say{text-align:right;font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums}
+td.kod{font-family:"IBM Plex Mono",monospace;font-size:11px}
+td.hesap{background:#FDFAE6}
+td.ucuncu{color:var(--ithalat);font-weight:600}
+td.supheli{background:var(--ithalat-bg)}
+td.supheli{background:var(--ithalat-bg)}
+td.supheli .rozetcik{
+  display:inline-block;margin-left:5px;font-family:"IBM Plex Sans",sans-serif;
+  font-size:9.5px;font-weight:700;letter-spacing:.02em;
+  color:#fff;background:var(--ithalat);border-radius:999px;padding:0 5px;vertical-align:1px;
+}
+tbody tr:nth-child(even) td{background:var(--panel-2)}
+tbody tr:nth-child(even) td.hesap{background:#FAF6DE}
+tbody tr:nth-child(even) td.supheli{background:#F8D9BC}
+tbody tr:hover td{background:var(--ihracat-bg)}
+tfoot td{
+  position:sticky;bottom:0;z-index:2;font-weight:600;background:#EDF0EA;
+  border-top:2px solid var(--ink);background-clip:padding-box;
+}
+td.uzun{white-space:normal;min-width:190px;max-width:290px}
+
+/* ---- kontrol ---- */
+.ulke-panel{border:1px solid var(--rule);border-top:0;background:var(--panel);padding:18px 20px}
+#panel{padding-top:0}
+.ulke-ust{display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap;margin-bottom:16px}
+.ulke-ust b{font-size:14px}
+.ulke-ust p{margin:3px 0 0;font-size:12.5px;color:var(--ink-2);max-width:60ch}
+.ulke-dugmeler{margin-left:auto;display:flex;align-items:center;gap:10px}
+.ulke-rozet{font-size:11px;color:var(--ithalat);border:1px solid var(--ithalat);border-radius:999px;padding:2px 9px}
+.ulke-izgara{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(210px,1fr))}
+.ulke-sutun label{display:flex;justify-content:space-between;align-items:baseline;font-size:12px;font-weight:600;margin-bottom:5px}
+.ulke-sutun label span{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--ink-3);font-weight:400}
+.ulke-sutun textarea{
+  width:100%;padding:8px 10px;border:1px solid var(--rule);border-radius:6px;background:var(--panel-2);
+  font-family:"IBM Plex Mono",monospace;font-size:11.5px;line-height:1.55;color:var(--ink);resize:vertical;
+}
+.ulke-sutun textarea:focus{outline:2px solid var(--ihracat);outline-offset:-1px;background:var(--panel)}
+.ulke-sutun .ipucu{margin:4px 0 0;font-size:11px;color:var(--ink-3);min-height:1em}
+.ulke-kaynak{margin-top:16px;padding-top:13px;border-top:1px solid var(--rule-2);font-size:12px;color:var(--ink-2);line-height:1.5}
+.ulke-kaynak ul{margin:6px 0 0 16px;padding:0}
+.ulke-kaynak a{color:var(--ihracat)}
+
+.kontrol-liste{display:grid;gap:14px;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));margin-top:16px}
+.kontrol-kart{border:1px solid var(--rule);background:var(--panel);padding:14px 16px}
+.kontrol-kart h4{margin:0 0 2px;font-size:14px;font-weight:600}
+.kontrol-kart .ad{font-size:12px;color:var(--ink-3);margin-bottom:9px}
+.kontrol-kart dl{display:grid;grid-template-columns:1fr auto;gap:5px 12px;margin:0;font-size:11.5px;align-items:baseline}
+.kontrol-kart dt{color:var(--ink-2);line-height:1.25}
+.kontrol-kart dt.ara,.kontrol-kart dd.ara{color:var(--ink-3);font-style:italic}
+.kontrol-kart .formul{margin:9px 0 0;padding-top:8px;border-top:1px solid var(--rule-2);font-size:11px;color:var(--ink-3);line-height:1.4}
+.kontrol-kart dd{margin:0;text-align:right;font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums}
+.kontrol-kart dt.toplam,.kontrol-kart dd.toplam{
+  border-top:1px solid var(--rule);margin-top:7px;padding-top:7px;font-weight:600;color:var(--ink);
+}
+.kontrol-kart dd.toplam.iyi{color:var(--ok)}
+.kontrol-kart dd.toplam.kotu{color:var(--alarm)}
+
+.indir-cubuk{
+  display:flex;flex-wrap:wrap;gap:10px;align-items:center;
+  margin:0 0 22px;padding:12px 14px;background:var(--panel);
+  border:1px solid var(--rule);border-radius:10px;
+}
+.indir-cubuk .not{font-size:12px;color:var(--ink-3);flex:1 1 auto;min-width:0}
+.indir-cubuk .ayrac{width:1px;align-self:stretch;background:var(--rule-2);margin:0 2px}
+
+.hata{border-left:4px solid var(--alarm);background:#F7E3E3;padding:11px 14px;margin-bottom:16px;font-size:13px}
+
+/* düzenlenebilir TEV'e tabi miktar */
+input.s-giris{
+  width:88px;padding:2px 5px;border:1px solid var(--rule);border-radius:4px;background:#FFFDF2;
+  font-family:"IBM Plex Mono",monospace;font-size:11px;text-align:right;color:var(--ink);
+  font-variant-numeric:tabular-nums;
+}
+input.s-giris:focus{outline:2px solid var(--ithalat);outline-offset:-1px}
+td.duzeltildi input.s-giris{border-color:var(--ithalat);background:var(--ithalat-bg);font-weight:600}
+
+/* denge kartları */
+.denge-liste{display:grid;gap:14px;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));margin-top:16px}
+.denge-kart{border:1px solid var(--rule);border-left:4px solid var(--ok);background:var(--panel);padding:14px 16px}
+.denge-kart.fazla{border-left-color:var(--ithalat)}
+.denge-kart.eksik{border-left-color:var(--alarm)}
+.denge-kart h4{margin:0;font-size:14px;font-weight:600}
+.denge-kart .ust{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.denge-kart .rozet{font-size:11px;font-weight:600;padding:1px 7px;border:1px solid currentColor}
+.denge-kart.esit .rozet{color:var(--ok)}
+.denge-kart.fazla .rozet{color:var(--ithalat)}
+.denge-kart.eksik .rozet{color:var(--alarm)}
+.denge-kart .ad{font-size:12px;color:var(--ink-3);margin:2px 0 9px}
+.denge-kart dl{display:grid;grid-template-columns:1fr auto;gap:3px 12px;margin:0;font-size:12.5px}
+.denge-kart dt{color:var(--ink-2)}
+.denge-kart dd{margin:0;text-align:right;font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums}
+.denge-kart dt.fark,.denge-kart dd.fark{border-top:1px solid var(--rule);margin-top:7px;padding-top:7px;font-weight:600}
+.denge-kart.fazla dd.fark{color:var(--ithalat)}
+.denge-kart.eksik dd.fark{color:var(--alarm)}
+.denge-kart .ucuncu-not{margin:6px 0 0;font-size:11.5px;color:var(--ithalat);line-height:1.4}
+.denge-kart .sebepler{margin:11px 0 0;padding:9px 0 0;border-top:1px solid var(--rule-2);font-size:12px;color:var(--ink-2)}
+.denge-kart .sebepler b{display:block;margin-bottom:4px;color:var(--ink)}
+.denge-kart .sebepler ol{margin:0 0 0 16px;padding:0}
+.denge-kart .sebepler li{margin-bottom:4px}
+.denge-kart .satirlar{margin-top:9px;font-size:11.5px;color:var(--ink-3)}
+.uyari.agir{border-left-color:var(--alarm);background:#F7E3E3}
+.uyari .fazla-liste li{margin-bottom:6px}
+button.ikincil.dus{
+  margin-left:8px;height:24px;padding:0 10px;font-size:11.5px;
+  border-color:var(--ithalat);color:var(--ithalat);background:var(--panel);
+}
+button.ikincil.dus:hover{background:var(--ithalat);border-color:var(--ithalat);color:#fff}
+
+.dus-panel{
+  margin:8px 0 10px;padding:11px 13px;background:var(--panel);
+  border:1px solid var(--ithalat);border-radius:10px;max-width:560px;
+}
+.dus-panel > b{display:block;font-size:12.5px;margin-bottom:8px}
+.dus-secenekler{display:grid;gap:5px;margin-bottom:9px}
+.dus-secenek{
+  display:grid;grid-template-columns:26px 1fr auto;gap:10px;align-items:center;
+  padding:6px 10px;border:1px solid var(--rule);border-radius:8px;background:var(--panel-2);
+  font:inherit;font-size:12px;text-align:left;cursor:pointer;color:var(--ink);
+  transition:border-color .12s,background .12s;
+}
+.dus-secenek:hover:not(:disabled){border-color:var(--ihracat);background:var(--ihracat-bg)}
+.dus-secenek:disabled{opacity:.45;cursor:not-allowed}
+.dus-secenek .no{
+  font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--ink-3);
+  text-align:center;border:1px solid var(--rule-2);border-radius:999px;padding:1px 0;
+}
+.dus-secenek .bilgi b{font-family:"IBM Plex Mono",monospace;font-weight:600}
+.dus-secenek .deger{font-size:11.5px;color:var(--ithalat);white-space:nowrap}
+
+@media (max-width:900px){
+  .masthead{padding:14px 18px 12px}
+  .yukleme,.arsiv,.ham-not{padding-left:18px;padding-right:18px}
+  .stage{padding:18px 18px 60px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+
+<header class="masthead">
+  <div>
+    <h1>TEV Tablosu Oluşturma Paneli</h1>
+    <p>DYS'den öngörülen ithalat, öngörülen ihracat, gerçekleşen ithalat, gerçekleşen ihracat, gerçekleşen sarfiyat; NOW'dan ise TEV raporunu yükleyin.</p>
+  </div>
+  <div class="belge-rozet" id="rozet" hidden>
+    <div class="k" id="rozetDurum">Belge</div>
+    <div class="v mono" id="rozetNo">—</div>
+  </div>
+</header>
+
+<section class="yukleme">
+  <div class="drop" id="drop" tabindex="0" role="button" aria-label="Dosya seç veya sürükleyip bırak">
+    <b>YÜKLE</b>
+  </div>
+  <input type="file" id="dosyaGirisi" multiple accept=".xlsx,.xls" hidden>
+  <p class="drop-aciklama" id="dropAciklama"></p>
+
+  <div class="ilerleme" id="ilerleme" hidden aria-live="polite">
+    <div class="ilerleme-ust"><span id="ilerlemeAd">Okunuyor…</span><span id="ilerlemeSayi" class="mono"></span></div>
+    <div class="ilerleme-ray"><div class="ilerleme-dolu" id="ilerlemeDolu"></div></div>
+  </div>
+</section>
+
+<div class="arsiv" id="arsivCubugu" hidden>
+  <div class="arsiv-baslik">
+    <span class="arsiv-etiket">Kayıtlı belgeler</span>
+    <span class="arsiv-boyut" id="arsivBoyut"></span>
+  </div>
+  <div class="arsiv-liste" id="arsivListesi"></div>
+  <p class="arsiv-not" id="arsivNot"></p>
+</div>
+
+<p class="ham-not" id="hamNot" hidden>Bu belgenin ham verileri silinmiş. Tablo kayıtlı sonuçlardan açıldı; yeniden hesaplamak için dosyaları tekrar yükleyin.</p>
+
+<main class="stage" id="stage"></main>
+
+<script>
+/* ==========================================================================
+   TEV Tablosu motoru — kaynak dosyaları okur, tablo verisini üretir
+   ========================================================================== */
+
+const TR = {
+  num(v) {
+    if (v === null || v === undefined || v === '') return 0;
+    if (typeof v === 'number') return v;
+    let s = String(v).trim();
+    if (/^\-?[\d.]+,\d+$/.test(s) || /^\-?\d{1,3}(\.\d{3})+$/.test(s)) {
+      s = s.replace(/\./g, '').replace(',', '.');
+    } else {
+      s = s.replace(',', '.');
+    }
+    const n = parseFloat(s);
+    return isNaN(n) ? 0 : n;
+  },
+  date(v) {
+    if (!v) return null;
+    // instanceof, farklı JS bağlamlarından gelen Date nesnelerinde yanılabiliyor
+    if (Object.prototype.toString.call(v) === '[object Date]') return isNaN(v.getTime()) ? null : v;
+    const s = String(v).trim();
+    let m = s.match(/^(\d{1,2})[\/.](\d{1,2})[\/.](\d{4})/);
+    if (m) return new Date(Date.UTC(+m[3], +m[2] - 1, +m[1]));
+    m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (m) return new Date(Date.UTC(+m[1], +m[2] - 1, +m[3]));
+    return null;
+  },
+  fmtDate(d) {
+    if (!d) return '';
+    const p = n => String(n).padStart(2, '0');
+    return p(d.getUTCDate()) + '.' + p(d.getUTCMonth() + 1) + '.' + d.getUTCFullYear();
+  },
+  fmtNum(n, dec = 2) {
+    if (n === null || n === undefined || n === '' || isNaN(n)) return '';
+    return Number(n).toLocaleString('tr-TR', { minimumFractionDigits: dec, maximumFractionDigits: dec });
+  },
+  round(n, d = 8) {
+    const f = Math.pow(10, d);
+    return Math.round((n + Number.EPSILON) * f) / f;
+  },
+  // "FİLİDEA TEKSTİL SANAYİ VE TİCARET ANONİM ŞİRKETİ" -> kısaltılmış unvan
+  shortUnvan(u) {
+    if (!u) return '';
+    return String(u)
+      .replace(/SANAY[İI]\s+VE\s+T[İI]CARET\s+ANON[İI]M\s+Ş[İI]RKET[İI]\s*$/i, 'SAN. VE Tİ. A.Ş.')
+      .replace(/\s+ANON[İI]M\s+Ş[İI]RKET[İI]\s*$/i, ' A.Ş.')
+      .replace(/\s+L[İI]M[İI]TED\s+Ş[İI]RKET[İI]\s*$/i, ' LTD. ŞTİ.')
+      .replace(/\s+/g, ' ')
+      .trim();
+  },
+  vkn(v) {
+    const s = String(v || '').replace(/\D/g, '');
+    if (s.length === 10) return s.slice(0, 3) + ' ' + s.slice(3, 6) + ' ' + s.slice(6);
+    return s;
+  },
+  gbNo(v) {
+    const s = String(v || '').trim();
+    return s.length > 8 ? s.slice(-8) : s;
+  },
+  // "Aliağa Gümrük Müdürlüğü" / "ALİAĞA GÜMRÜK MÜDÜRLÜĞÜ" -> "Aliağa"
+  kisaGumruk(v) {
+    if (!v) return '';
+    let s = String(v).replace(/GÜMRÜK\s+MÜDÜRLÜĞÜ/i, '').trim();
+    return s.charAt(0) + s.slice(1).toLocaleLowerCase('tr-TR');
+  }
+};
+
+/* ---------- Dosya tanıma ---------------------------------------------- */
+
+const DOC_TYPES = {
+  tev: { key: 'tev', label: 'TEV raporu', hint: 'Telafi edici vergi kayıtları', required: true },
+  git: { key: 'git', label: 'Gerçekleşen ithalat', hint: 'İthalat beyannameleri', required: false },
+  gih: { key: 'gih', label: 'Gerçekleşen ihracat', hint: 'İhracat beyannameleri', required: false },
+  gs:  { key: 'gs',  label: 'Gerçekleşen sarfiyat', hint: 'Kullanım ve fire oranları', required: false },
+  oit: { key: 'oit', label: 'Öngörülen ithalat', hint: 'Belge ithal eşya listesi', required: false },
+  oih: { key: 'oih', label: 'Öngörülen ihracat', hint: 'Belge ihraç eşya listesi', required: false }
+};
+
+function detectType(rows, rawText) {
+  if (rawText && /Birim\s+Kullan[ıi]m\s+Miktar[ıi]/i.test(rawText)) return 'gs';
+  const flat = new Set();
+  for (let i = 0; i < Math.min(4, rows.length); i++) {
+    (rows[i] || []).forEach(c => { if (c) flat.add(String(c).trim()); });
+  }
+  const has = s => flat.has(s);
+  if (has('BELGENO') && has('TEVMIKTAR')) return 'tev';
+  if (has('Gümrük Vergisi Kalem Rto')) return 'git';
+  if (has('TEV Kalem Rto')) return 'gih';
+  if (has('Satırkodu') && has('İthalat Sebepleri')) return 'oit';
+  if (has('Satır Kodu') && has('Gerceklesen Miktar2')) return 'oih';
+  if (has('Satır Kodu') && has('Gerçekleşen Miktar (%)')) return 'oih';
+  return null;
+}
+
+/* ---------- Kaynak ayrıştırıcılar -------------------------------------- */
+
+function rowsToObjects(rows, headerRowIdx) {
+  const hdr = (rows[headerRowIdx] || []).map(h => String(h == null ? '' : h).trim());
+  const out = [];
+  for (let i = headerRowIdx + 1; i < rows.length; i++) {
+    const r = rows[i];
+    if (!r || r.every(c => c === null || c === undefined || c === '')) continue;
+    const o = {};
+    hdr.forEach((h, j) => { if (h) o[h] = r[j]; });
+    out.push(o);
+  }
+  return out;
+}
+
+function parseTev(rows) {
+  // Satır 1 insan okunur başlık, satır 2 alan adları
+  let hi = 0;
+  for (let i = 0; i < Math.min(4, rows.length); i++) {
+    if ((rows[i] || []).some(c => String(c).trim() === 'BELGENO')) { hi = i; break; }
+  }
+  return rowsToObjects(rows, hi).filter(o => o.BELGENO);
+}
+
+function parseBeyanname(rows) {
+  let hi = 0;
+  for (let i = 0; i < Math.min(4, rows.length); i++) {
+    if ((rows[i] || []).some(c => String(c).trim() === 'TCGB Tescil No')) { hi = i; break; }
+  }
+  return rowsToObjects(rows, hi).filter(o => o['TCGB Tescil No']);
+}
+
+function parseOit(rows) {
+  let hi = 0;
+  for (let i = 0; i < Math.min(6, rows.length); i++) {
+    if ((rows[i] || []).some(c => String(c).trim() === 'Satırkodu')) { hi = i; break; }
+  }
+  return rowsToObjects(rows, hi).filter(o => /^\d\d\.\d\.\d+\.\d+$/.test(String(o['Satırkodu'] || '').trim()));
+}
+
+function parseOih(rows) {
+  let hi = 0;
+  for (let i = 0; i < Math.min(6, rows.length); i++) {
+    if ((rows[i] || []).some(c => String(c).trim() === 'Satır Kodu')) { hi = i; break; }
+  }
+  return rowsToObjects(rows, hi).filter(o => /^\d\d\.\d\.\d+\.\d+$/.test(String(o['Satır Kodu'] || '').trim()));
+}
+
+/* Sarfiyat tablosu: satırlar = ithalat satır kodları, sütunlar = ihracat satır kodları.
+   Her hücre <br> ile ayrılmış 4 değer taşır:
+   birim kullanım · fire (%) · toplam birim kullanım · toplam mamul kullanım      */
+function parseSarfiyat(htmlText) {
+  const doc = new DOMParser().parseFromString(htmlText, 'text/html');
+  const table = doc.querySelector('table');
+  if (!table) throw new Error('Sarfiyat dosyasında tablo bulunamadı.');
+  const trs = Array.from(table.querySelectorAll('tr'));
+  const cellParts = td => td.innerHTML.split(/<br\s*\/?>/i).map(x => {
+    const t = document.createElement('div'); t.innerHTML = x; return (t.textContent || '').trim();
+  });
+  const codeRe = /^\d{2}\.\d\.\d+\.\d+$/;
+
+  // Başlık hücresi <br> ile ayrılmış: satır kodu · miktar · birim · madde adı
+  const headCells = Array.from(trs[0].children);
+  const expCodes = headCells.slice(2).map(td => {
+    const m = (cellParts(td)[0] || '').match(codeRe);
+    return m ? m[0] : null;
+  });
+
+  const map = {}; // ihracat satır kodu -> [{imp, oran, fire}]
+  for (let i = 1; i < trs.length; i++) {
+    const cells = Array.from(trs[i].children);
+    if (cells.length < 3) continue;
+    const m = (cellParts(cells[0])[0] || '').match(codeRe);
+    if (!m) continue;
+    const imp = m[0];
+    if (!/\.\d\.\d+\.\d+$/.test(imp) || imp.split('.')[1] !== '2') continue;
+    for (let j = 2; j < cells.length; j++) {
+      const exp = expCodes[j - 2];
+      if (!exp) continue;
+      const p = cellParts(cells[j]);
+      const oran = TR.num(p[0]);      // birim kullanım miktarı
+      const fire = TR.num(p[1]);      // fire / İİGÜ oranı (%)
+      const tbk  = TR.num(p[2]);      // toplam birim kullanım = belgedeki katsayı
+      if (oran <= 0) continue;
+      // Sarfiyat dosyası katsayıyı 4 haneye yuvarlayarak yazıyor. Yuvarlanmış hali
+      // birim kullanım ÷ (1 − fire) ile örtüşüyorsa tam duyarlıklı halini kullan.
+      const tam = fire < 100 ? oran / (1 - fire / 100) : tbk;
+      const katsayi = (tbk > 0 && Math.abs(tam - tbk) < 5e-5) ? tam : (tbk || tam);
+      (map[exp] = map[exp] || []).push({ imp, oran, fire, katsayi, katsayiDosya: tbk });
+    }
+  }
+  return map;
+}
+
+
+/* Satır kodundan belge kimliği: 25.2.04113.001 -> "25-04113".
+   Yüklenen dosyaların hangi belgeye ait olduğunu ayırmak için kullanılır. */
+function kodKimlik(kod){
+  const m = String(kod || '').match(/^(\d{2})\.\d\.(\d+)\./);
+  return m ? m[1] + '-' + m[2] : null;
+}
+
+function kaynakKimlik(tip, veri){
+  if (tip === 'gs') {
+    for (const k of Object.keys(veri)) { const x = kodKimlik(k); if (x) return x; }
+    return null;
+  }
+  for (const r of (veri || []).slice(0, 5)) {
+    const x = kodKimlik(r.SATIRKODU || r['Satır Kodu'] || r['Satırkodu'] || r.IMPSATIRKODU);
+    if (x) return x;
+  }
+  return null;
+}
+
+
+/* ---------- Ülke sınıflandırması --------------------------------------- */
+/* Beyannamedeki varış ülkesi, ÜLKELER listelerine göre AB / EFTA / STA veya
+   üçüncü ülke olarak sınıflanır. Üçüncü ülkeye yapılan ihracat için TEV doğmaz. */
+
+const ULKE_ESANLAM = {
+  'İNGİLTERE': 'BİRLEŞİK KRALLIK',
+  'BÜYÜK BRİTANYA': 'BİRLEŞİK KRALLIK',
+  'BIRLESIK KRALLIK': 'BİRLEŞİK KRALLIK',
+  'GÜNEY KIBRIS RUM YÖNETİMİ': 'GÜNEY KIBRIS',
+  'KIBRIS': 'GÜNEY KIBRIS',
+  'ÇEK CUMHURİYETİ': 'ÇEKYA',
+  'MAKEDONYA': 'KUZEY MAKEDONYA',
+  'SLOVAK CUMHURİYETİ': 'SLOVAKYA',
+  'KORE CUMHURİYETİ': 'GÜNEY KORE',
+  'KORE, CUMHURİYETİ': 'GÜNEY KORE'
+};
+
+function ulkeAnahtar(ad){
+  if (!ad) return '';
+  let a = String(ad).replace(/\s*\([^)]*\)\s*/g, ' ')   // "(01.05.2008)" gibi ekleri at
+                    .replace(/\s+-\s+.*$/, '')            // "Suriye - askıda" gibi notları at
+                    .replace(/\s+/g, ' ')
+                    .trim()
+                    .toLocaleUpperCase('tr-TR');
+  return ULKE_ESANLAM[a] || a;
+}
+
+function ulkeSinifi(varis, ulkeler){
+  const u = ulkeler || ULKELER_VARSAYILAN;
+  const k = ulkeAnahtar(varis);
+  if (!k) return 'bilinmiyor';
+  const iceriyor = liste => (liste || []).some(x => ulkeAnahtar(x) === k);
+  if (iceriyor(u.ab)) return 'AB';
+  if (iceriyor(u.efta)) return 'EFTA';
+  if (iceriyor(u.sta)) return 'STA';
+  return 'ÜÇÜNCÜ';
+}
+
+/* ---------- Türetilmiş tablolar ---------------------------------------- */
+
+// Öngörülen listelerden satır kodu -> madde adı sözlüğü
+function maddeSozlugu(satirlar, kodAlan, adAlan) {
+  const m = {};
+  (satirlar || []).forEach(r => {
+    const k = String(r[kodAlan] || '').trim();
+    const ad = r[adAlan];
+    if (k && ad) m[k] = String(ad).trim();
+  });
+  return m;
+}
+
+function buildIthalatListesi(git, oit) {
+  const adlar = maddeSozlugu(oit, 'Satırkodu', 'Madde Adı');
+  return git.map(r => ({
+    gumruk: r['TCGB Gümrük İdaresi'],
+    gbNo: TR.gbNo(r['TCGB Tescil No']),
+    tarih: TR.date(r['TCGB Tescil Tarihi']),
+    vergiNo: String(r['Alıcı / Gönderici VKN'] || r['Alıcı / Gönderici Vergi No'] || ''),
+    unvan: r['Alıcı / Gönderici Unvan'],
+    kalem: String(r['Kalem No'] || ''),
+    satirKodu: String(r['Satır Kodu'] || ''),
+    gtip: String(r['GTIP No (8li)'] || ''),
+    istMiktar: TR.num(r['İstatistiki Miktar']),
+    istBirim: String(r['İstatistiki Birim Kodu'] || '').toUpperCase().startsWith('KİLO') ? 'KG'
+              : String(r['İstatistiki Birim Kodu'] || ''),
+    istKiymet: TR.num(r['İstatistiki Kıymet ($)']),
+    rejim: String(r['Kalem Rejim Kodu'] || ''),
+    mensei: r['Menşe Ülke Adı'],
+    cikis: r['Çıkış Ülkesi'],
+    kap: adlar[String(r['Satır Kodu'] || '').trim()] || r['Kap Ürün Bilgisi'],
+    beyannameKap: r['Kap Ürün Bilgisi'],
+    miktarKg: TR.num(r['Net Kg']),
+    vergiOrani: TR.num(r['Gümrük Vergisi Kalem Rto'])
+  }));
+}
+
+function buildIhracatListesi(gih, sarfiyat, tevRows, oih, ulkeler) {
+  const adlar = maddeSozlugu(oih, 'Satır Kodu', 'Madde Adı');
+  // TEV raporundan makbuz eşlemesi: (ihracat GB, ihracat satır, ithalat satır)
+  const makbuz = new Map();
+  tevRows.forEach(t => {
+    const k = [TR.gbNo(t.GBNO), String(t.SATIRKODU).trim(), String(t.IMPSATIRKODU).trim()].join('|');
+    if (!makbuz.has(k)) makbuz.set(k, t.TEVSIZ === 1 || t.TEVSIZ === '1' ? 'TEVSİZ' : (t.MAKBUZNO || 'TEVSİZ'));
+  });
+
+  const out = [];
+  const eksik = new Set();
+  gih.forEach(r => {
+    const exp = String(r['Satır Kodu'] || '').trim();
+    const pay = sarfiyat[exp];
+    const gbNo = TR.gbNo(r['TCGB Tescil No']);
+    const netKg = TR.num(r['Net Kg']);
+    if (!pay || !pay.length) {
+      eksik.add(exp);
+      out.push({
+        tevli: 'TEVSİZ', gumruk: r['TCGB Gümrük İdaresi'], gbNo, tarih: TR.date(r['TCGB Tescil Tarihi']),
+        vergiNo: String(r['Alıcı / Gönderici Vergi No'] || r['Alıcı / Gönderici VKN'] || ''),
+        unvan: r['Alıcı / Gönderici Unvan'], kalem: String(r['Kalem No'] || ''),
+        ihrSatir: exp, ithSatir: '', gtip: String(r['GTİP Kodu (12 li)'] || ''),
+        istMiktar: TR.num(r['İstatistiki Miktar']), istBirim: 'kg',
+        istKiymet: TR.num(r['İstatistiki Kıymet ($)']), rejim: String(r['Kalem Rejim Kodu'] || ''),
+        mensei: r['Menşe Ülke Adı'], cikis: r['Çıkış Ülkesi'],
+        kap: adlar[exp] || r['Kap Ürün Bilgisi'], beyannameKap: r['Kap Ürün Bilgisi'],
+        miktarKg: netKg, oran: 0, fireliMiktar: 0, varis: r['Varış Ülkesi'],
+        ulkeSinifi: ulkeSinifi(r['Varış Ülkesi'], ulkeler), uyari: true
+      });
+      return;
+    }
+    const toplamOran = pay.reduce((s, p) => s + p.oran, 0);
+    pay.forEach(p => {
+      const miktar = TR.round(netKg * p.oran / toplamOran);
+      // Fireli miktar = beyannamenin tam miktarı × sarfiyattaki katsayı
+      const fireli = TR.round(netKg * p.katsayi);
+      out.push({
+        tevli: makbuz.get([gbNo, exp, p.imp].join('|')) || 'TEVSİZ',
+        gumruk: r['TCGB Gümrük İdaresi'], gbNo, tarih: TR.date(r['TCGB Tescil Tarihi']),
+        vergiNo: String(r['Alıcı / Gönderici Vergi No'] || r['Alıcı / Gönderici VKN'] || ''),
+        unvan: r['Alıcı / Gönderici Unvan'], kalem: String(r['Kalem No'] || ''),
+        ihrSatir: exp, ithSatir: p.imp, gtip: String(r['GTİP Kodu (12 li)'] || ''),
+        istMiktar: TR.num(r['İstatistiki Miktar']), istBirim: 'kg',
+        istKiymet: TR.num(r['İstatistiki Kıymet ($)']), rejim: String(r['Kalem Rejim Kodu'] || ''),
+        mensei: r['Menşe Ülke Adı'], cikis: r['Çıkış Ülkesi'],
+        kap: adlar[exp] || r['Kap Ürün Bilgisi'], beyannameKap: r['Kap Ürün Bilgisi'],
+        miktarKg: miktar, oran: p.katsayi, karisimOrani: p.oran, fireOrani: p.fire,
+        fireliMiktar: fireli, varis: r['Varış Ülkesi'],
+        ulkeSinifi: ulkeSinifi(r['Varış Ülkesi'], ulkeler), uyari: false
+      });
+    });
+  });
+  return { rows: out, eksikSatirKodlari: Array.from(eksik) };
+}
+
+/* TEV TABLOSU: raporun TEV'li satırları, aynı beyanname + aynı ithalat eşleşmesi
+   olanlar tek satırda toplanır. Sıralama raporun kendi sırasını korur.        */
+function buildTevTablosu(tevRows) {
+  const tevli = tevRows.filter(t => !(t.TEVSIZ === 1 || t.TEVSIZ === '1'));
+  const keyOf = t => [
+    t.GUMRUK, TR.gbNo(t.GBNO), TR.fmtDate(TR.date(t.GBTARIH)), t.SATIRKODU, t.GTIP, t.MALADI, t.SIRA,
+    t.ITHGUMRUK, TR.gbNo(t.ITHGBNO), TR.fmtDate(TR.date(t.ITHGBTARIHI)), t.IMPSATIRKODU, t.ITHGTIP,
+    t.IMPMALADI, TR.num(t.GMIKTAR2), TR.num(t.DEGER), TR.num(t.KAYITLIBK), TR.num(t.KAYITLIVO),
+    TR.num(t.ITHVO), TR.num(t.KYTDOVKUR), TR.num(t.IHRDOVKUR),
+    TR.fmtDate(TR.date(t.MAKBUZTARIHI)), t.MAKBUZNO
+  ].join('\u0001');
+
+  const order = [];
+  const byKey = new Map();
+  tevli.forEach(t => {
+    const k = keyOf(t);
+    if (!byKey.has(k)) {
+      byKey.set(k, {
+        gumruk: t.GUMRUK, gbNo: TR.gbNo(t.GBNO), gbTarih: TR.date(t.GBTARIH),
+        satirKodu: String(t.SATIRKODU || ''), gtip: String(t.GTIP || ''), maddeAdi: t.MALADI,
+        miktar: 0, fireliMiktar: 0,
+        sira: t.SIRA,
+        ithGumruk: t.ITHGUMRUK, ithGbNo: TR.gbNo(t.ITHGBNO), ithGbTarih: TR.date(t.ITHGBTARIHI),
+        ithSatirKodu: String(t.IMPSATIRKODU || ''), ithGtip: String(t.ITHGTIP || ''), ithMaddeAdi: t.IMPMALADI,
+        ithMiktar: TR.num(t.GMIKTAR2), deger: TR.num(t.DEGER),
+        odenenMiktar: 0, tevTabiMiktar: 0,
+        kayitliBK: TR.num(t.KAYITLIBK), kayitliVO: TR.num(t.KAYITLIVO), ithalVO: TR.num(t.ITHVO),
+        kayitliKur: TR.num(t.KYTDOVKUR), ihracKur: TR.num(t.IHRDOVKUR),
+        odenenTev: 0, odenenFaiz: null,
+        makbuzTarihi: TR.date(t.MAKBUZTARIHI), makbuzNo: t.MAKBUZNO
+      });
+      order.push(k);
+    }
+    const g = byKey.get(k);
+    g.miktar = TR.round(g.miktar + TR.num(t.MIKTAR));
+    g.fireliMiktar = TR.round(g.fireliMiktar + TR.num(t.FIRELIMIKTAR));
+    g.odenenMiktar = TR.round(g.odenenMiktar + TR.num(t.ODEMIKTAR));
+    g.tevTabiMiktar = TR.round(g.tevTabiMiktar + TR.num(t.TEVMIKTAR));
+    g.odenenTev = TR.round(g.odenenTev + TR.num(t.TEVTUTAR), 2);
+  });
+  return order.map(k => byKey.get(k));
+}
+
+
+/* Beyanname dengesi: her ithalat beyannamesi için, TEV tablosunda o beyannameye
+   dayanan satırların TEV'e tabi miktar toplamı beyanname miktarına eşit olmalıdır. */
+function buildBeyannameDengesi(tev, ihracat) {
+  const gruplar = new Map();
+  tev.forEach((r, i) => {
+    const k = [r.ithGumruk, r.ithGbNo, r.ithSatirKodu].join('|');
+    if (!gruplar.has(k)) {
+      gruplar.set(k, {
+        gumruk: r.ithGumruk, gbNo: r.ithGbNo, gbTarih: r.ithGbTarih,
+        satirKodu: r.ithSatirKodu, maddeAdi: r.ithMaddeAdi,
+        beyannameMiktar: r.ithMiktar, tevTabiToplam: 0, satirlar: []
+      });
+    }
+    const g = gruplar.get(k);
+    g.tevTabiToplam = TR.round(g.tevTabiToplam + r.tevTabiMiktar, 4);
+    g.satirlar.push(i);
+  });
+  return Array.from(gruplar.values()).map(g => {
+    const fark = TR.round(g.tevTabiToplam - g.beyannameMiktar, 4);
+    // Aynı ithalat satır kodundan beslenen üçüncü ülke ihracatı var mı?
+    const ucuncuSatirlar = (ihracat || []).filter(
+      r => r.ithSatir === g.satirKodu && r.ulkeSinifi === 'ÜÇÜNCÜ');
+    const ucuncuUlkeler = Array.from(new Set(ucuncuSatirlar.map(r => r.varis).filter(Boolean)));
+    return Object.assign(g, {
+      fark,
+      durum: Math.abs(fark) < 0.005 ? 'esit' : (fark > 0 ? 'fazla' : 'eksik'),
+      ucuncuMiktar: TR.round(ucuncuSatirlar.reduce((s, r) => s + r.fireliMiktar, 0), 4),
+      ucuncuSatirSayisi: ucuncuSatirlar.length,
+      ucuncuUlkeler
+    });
+  });
+}
+
+const EKSIK_SEBEPLER = [
+  'Tabloya TEV’siz bir beyanname işlenmiştir.',
+  'Üçüncü ülke durumu vardır. İlgili ithalat satırı için kontrol sayfasındaki beş kalemi karşılaştırın: ithalat listesindeki vergili miktar, ihracat listesindeki TEV ödenen satırların fireli miktarı, ihracat listesindeki üçüncü ülke miktarları, ithalat listesindeki vergisiz miktar ve ihracat listesindeki TEV ödenmeyen miktarlar.',
+  'Yanlış veya eksik ödenen TEV vardır.'
+];
+
+/* Kontrol: her ithalat satır kodu için vergili/vergisiz denge                */
+function buildKontrol(ithalat, ihracat, oit) {
+  const kodlar = new Set();
+  ithalat.forEach(r => kodlar.add(r.satirKodu));
+  ihracat.forEach(r => { if (r.ithSatir) kodlar.add(r.ithSatir); });
+  (oit || []).forEach(r => kodlar.add(String(r['Satırkodu']).trim()));
+
+  const adlar = {};
+  ithalat.forEach(r => { adlar[r.satirKodu] = adlar[r.satirKodu] || r.kap; });
+  (oit || []).forEach(r => { adlar[String(r['Satırkodu']).trim()] = r['Madde Adı']; });
+
+  return Array.from(kodlar).sort().map(kod => {
+    const ithV = ithalat.filter(r => r.satirKodu === kod && r.vergiOrani > 0)
+      .reduce((s, r) => s + r.miktarKg, 0);
+    const ithVsiz = ithalat.filter(r => r.satirKodu === kod && !(r.vergiOrani > 0))
+      .reduce((s, r) => s + r.miktarKg, 0);
+    const ihrV = ihracat.filter(r => r.ithSatir === kod && r.tevli !== 'TEVSİZ')
+      .reduce((s, r) => s + r.fireliMiktar, 0);
+    // TEV ödenmemiş ihracat: üçüncü ülkeye gidenler ayrı gösterilir
+    const ucuncu = ihracat.filter(r => r.ithSatir === kod && r.tevli === 'TEVSİZ' && r.ulkeSinifi === 'ÜÇÜNCÜ')
+      .reduce((s, r) => s + r.fireliMiktar, 0);
+    const ihrVsiz = ihracat.filter(r => r.ithSatir === kod && r.tevli === 'TEVSİZ' && r.ulkeSinifi !== 'ÜÇÜNCÜ')
+      .reduce((s, r) => s + r.fireliMiktar, 0);
+    return {
+      kod, ad: adlar[kod] || '',
+      ithalatVergili: TR.round(ithV, 4),
+      ihracatVergiliFireli: TR.round(ihrV, 4),
+      ucuncuUlke: TR.round(ucuncu, 4),
+      ithalatVergisiz: TR.round(ithVsiz, 4),
+      ihracatVergisizFireli: TR.round(ihrVsiz, 4),
+      sarfiyatFarki: TR.round(ithVsiz + ithV - ihrV - ucuncu - ihrVsiz, 4)
+    };
+  });
+}
+
+/* ---------- Belge başlığı ---------------------------------------------- */
+
+function belgeBilgisi(tevRows, git, gih) {
+  const first = tevRows[0] || {};
+  const src = (git && git[0]) || (gih && gih[0]) || {};
+  const belgeTarih = TR.date(first.BELGETARIH);
+  return {
+    firmaAdi: TR.shortUnvan(src['Alıcı / Gönderici Unvan']),
+    belgeNo: first.BELGENO || '',
+    belgeTarih: belgeTarih,
+    belgeTarihNo: (belgeTarih ? TR.fmtDate(belgeTarih) + ' | ' : '') + (first.BELGENO || ''),
+    vergiNo: TR.vkn(src['Alıcı / Gönderici VKN'] || src['Alıcı / Gönderici Vergi No']),
+    belgeDurum: first.BELGEDURUM || '',
+    sureSonu: null
+  };
+}
+
+const ULKELER_SURUM = '02.09.2026';
+
+const ULKELER_VARSAYILAN = {
+  ab: ['Almanya','Avusturya','Belçika','Bulgaristan','Çekya','Danimarka','Estonya','Finlandiya',
+       'Fransa','Güney Kıbrıs','Hırvatistan','Hollanda','İrlanda','İspanya','İsveç','İtalya',
+       'Letonya','Litvanya','Lüksemburg','Macaristan','Malta','Polonya','Portekiz','Romanya',
+       'Slovakya','Slovenya','Yunanistan'],
+  efta: ['İsviçre','İzlanda','Lihtenştayn','Norveç'],
+  sta: ['AKÇT ürünleri - AB  (01.08.1996)','Arnavutluk  (01.05.2008)',
+        'Birleşik Arap Emirlikleri  (01.09.2023)','Birleşik Krallık  (14.04.2021)',
+        'Bosna-Hersek  (01.07.2003)','EFTA  (01.04.1992)','Faroe Adaları  (01.10.2017)',
+        'Fas  (01.01.2006)','Filistin  (01.06.2005)','Güney Kore  (01.05.2013)',
+        'Gürcistan  (01.11.2008)','İsrail  (01.05.1997)','Karadağ  (01.03.2010)',
+        'Kosova  (01.09.2019)','Kuzey Makedonya  (01.09.2000)','Malezya  (01.08.2015)',
+        'Mısır  (01.03.2007)','Moldova  (01.11.2016)','Morityus  (01.06.2013)',
+        'Singapur  (01.10.2017)','Sırbistan  (01.09.2010)','Şili  (01.03.2011)',
+        'Tunus  (01.07.2005)','Venezuela  (21.08.2020)'],
+  disarida: ['Suriye - 06.12.2011 tarihinde karşılıklı askıya alındı',
+             'Ürdün - 22.11.2018 tarihinde yürürlükten kaldırıldı']
+};
+
+const ULKELER_KAYNAK = [
+  ['Ticaret Bakanlığı - Serbest Ticaret Anlaşmaları', 'https://ticaret.gov.tr/dis-iliskiler/serbest-ticaret-anlasmalari'],
+  ['Avrupa Birliği - üye ülkeler', 'https://european-union.europa.eu/principles-countries-history/eu-countries_tr'],
+  ['EFTA - üye ülkeler', 'https://www.efta.int/about-efta/the-efta-states']
+];
+
+// Dört sütunlu ÜLKELER sayfası: AB iki sütuna bölünür, EFTA ve STA birer sütun
+function ulkelerTablosu(u){
+  const ab = u.ab || [];
+  const yari = Math.ceil(ab.length / 2);
+  const sol = ab.slice(0, yari), sag = ab.slice(yari);
+  const n = Math.max(sol.length, sag.length, (u.efta || []).length, (u.sta || []).length);
+  const satirlar = [['AB ÜLKELERİ', null, 'EFTA ÜLKELERİ', 'STA ÜLKELERİ']];
+  for (let i = 0; i < n; i++) {
+    satirlar.push([sol[i] || null, sag[i] || null, (u.efta || [])[i] || null, (u.sta || [])[i] || null]);
+  }
+  return satirlar;
+}
+
+const NOT_ITHALAT = [
+  "1) Tarihlerin (/)'lı girilmesi.  (18/01/2006)",
+  "2) Alıcı Vergi Numarası'nın (797 004 8000) şeklinde girilmesi.,",
+  "3) Alıcı,  GB'nin 8. Hanesi",
+  "4) Kalem No,  GB'nin 32. Hanesi",
+  "5) GTİP'lerin noktalı girilmemesi. (5205 12 00 00 12)",
+  "6) GTİP Açıklaması,  Resmi Gazete yer alan GTİP'in açıklaması yazılacak.",
+  "7) İstatistiki Miktar,  GB'nin 41. Hanesi",
+  "8) İstatistiki Birim Kodu,  Kg/Mt/Adet cinsinden 41. Hanenin kodunu",
+  "9) İstatistiki Kıymet,  GB'nin 46. Hanesi",
+  "10) Kalem Rejim Kodu,  GB'nin 37. Hanesi",
+  "11) Menşe Ülke,  GB'nin 16. Hanesi",
+  "12) Çıkış Ülkesi,  GB'nin 15. Hanesi",
+  "13) Kap Eşya Bilgisi,  malın özellikleri ve karışım oranları belirtilecek.",
+  "14) Miktar(Kg) , GB'nin 38.Hanesi",
+  "15) Satır Kodu'nun (06.2.04248.001) şeklinde noktalı girilmesi.",
+  "16) Listeye sarfiyat hesabında değerlendirilmek üzere varsa M2 ve Mt bilgilerinin de ilave edilmesi.",
+  "17) İthal edilen her bir mal cinsi için ayrı ayrı İthalat Listesi düzenlenmesi.(Vergili ve Vergisiz olmak üzere)",
+  "18) Listelerin Gümrük bazında GB tarih ve no sırasına göre düzenlenmesi.",
+  "19) GB'de (miktar,değer,tarih,sayısı...) vb.gibi herhangi birisi okunmuyor ise, ekine okunaklı fatura, çeki listesi gibi evraklarından birinin eklenmesi.",
+  "20) GB ekine varsa İthal Lisansı (arkalı-önlü) fotokopisininde eklenmesi."
+];
+
+const NOT_IHRACAT = [
+  "1) Tarihlerin (/)'lı girilmesi. (01/12/2002)",
+  "2) Gönderici Vergi Numarası'nın (325 032 9000) şeklinde girilmesi.,",
+  "3) Gönderici Adı,  GB'nin 2. Hanesi",
+  "4) Kalem No,  GB'nin 32. Hanesi",
+  "5) GTİP'lerin noktalı girilmemesi. (6208 91 11 00 12)",
+  "6) GTİP Açıklaması,  Resmi Gazete yer alan GTİP'in açıklaması yazılacak.",
+  "7) İstatistiki Miktar,  GB'nin 41. Hanesi",
+  "8) İstatistiki Birim Kodu,  Kg/Mt/Adet cinsinden 41. Hanenin kodunu",
+  "9) İstatistiki Kıymet,  GB'nin 46. Hanesi",
+  "10) Kalem Rejim Kodu,  GB'nin 37. Hanesi",
+  "11) Menşe Ülke,  GB'nin 16. Hanesi",
+  "12) Çıkış Ülkesi,  GB'nin 15. Hanesi",
+  "13) Kap Eşya Bilgisi,  malın özellikleri ve karışım oranları belirtilecek.",
+  "14) Miktar(Kg) , GB'nin 38.Hanesi",
+  "15) Gideceği Ülke, GB'nin 17.Hanesi ",
+  "16) Satır Kodu'nun (06.2.04248.001) şeklinde noktalı girilmesi.",
+  "17) Listeye sarfiyat hesabında değerlendirilmek üzere varsa Ad, Mt ve M2 bilgilerinin de ilave edilmesi.",
+  "18) 3.Ülke, AB-EFTA-STA(TEV'li) ve AB-EFTA-STA(TEV'siz) ihracatları için ayrı ayrı liste düzenlenmesi.",
+  "19) Listelerin Gümrük bazında GB tarih ve no sırasına göre düzenlenmesi.",
+  "20) GB'de (miktar,değer,tarih.sayı...) vb.gibi herhangi birisi okunmuyor ise, ekine okunaklı fatura, çeki listesi gibi evraklardan birinin mutlaka eklenmesi."
+];
+
+const NOT_TEV = [
+  [null, 'NOT    : '],
+  ['1)', "İş bu TEV TABLOSU girişleri, TEV'li İhracat Listesi'nin sırasında yapılacaktır."],
+  ['2)', 'TEV TABLOSU hazırlanırken dikkat edilmesi gereken hususlar ve doldurulması gereken sütunlar belirtilmiştir.'],
+  ['3)', "(*) TEV TABLOSU'nda sarı renk ile boyalı olan sütunlar formullü veya Birlik tarafından doldurulacak olup, firmalar tarafından bilgi girişi yapılmayacaktır."],
+  [null, 'İHRACAT BÖLÜMÜ :'],
+  ['4)', "GÜMRÜK MÜDÜRLÜĞÜ;  İhracat GB'sinin tescil edildiği gümrük idaresi"],
+  ['5)', "GB TARİH;  İhracat GB'sinin tescil edildiği tarih "],
+  ['6)', "GB NO; İhracat GB'sinin tescil nosunu"],
+  ['7)', 'SATIR KODU; İhracata ilişkin ilgili beyanname kalemine ait satır kodu'],
+  ['8)', "GTİP; İhracata ilişkin ilgili beyanname kalemine ait GTİP'i"],
+  ['9)', 'MADDE ADI; İhracata ilişkin ilgili beyanname kalemine ait mal tanımı'],
+  ['10)', 'MİKTAR; İhracata ilişkin ilgili beyanname kalemine ait miktar (Kg/Adet/M2) bilgisi'],
+  ['11)', 'FİRELİ MİKTAR; İhracata ilişkin ilgili beyanname kalemine ait, belgenin öngörülen sarfiyatında yer alan kullanım ve fire oranları dikkate alınarak hesaplanan fireli miktarı'],
+  [null, 'İTHALAT BÖLÜMÜ :'],
+  ['12)', "GÜMRÜK MÜDÜRLÜĞÜ;  İthalat GB'sinin tescil edildiği gümrük idaresi"],
+  ['13)', "GB TARİH;  İthalat GB'sinin tescil edildiği tarih "],
+  ['14)', "GB NO; İthalat GB'sinin tescil nosunu"],
+  ['15)', 'SATIR KODU; İthalata ilişkin ilgili beyanname kalemine ait satır kodu'],
+  ['16)', "GTİP; İthalata ilişkin ilgili beyanname kalemine ait GTİP'i"],
+  ['17)', 'MADDE ADI; İthalata ilişkin ilgili beyanname kalemine ait mal tanımı'],
+  ['18)', 'MİKTAR; İthalata ilişkin ilgili beyanname kalemine ait miktar (Kg/Adet/M2) bilgisi'],
+  ['19)', 'DEĞER; İthalata ilişkin ilgili beyanname kalemine ait istatistiki kıymet sütununda kayıtlı bulunan (CIF USD) değer bilgisi'],
+  [null, 'TEV HESAPLAMASI BÖLÜMÜ :'],
+  ['20)', "ÖDENEN MİKTAR; Telafi Edici Vergi Hesap Formu'nda kayıtlı bulunan miktar"],
+  ['21)', "TEV'e TABİ MİKTAR; Telafi Edici Verginin hesaplanmasında esas alınacak miktar,"],
+  ['22)', "KAYITLI BİRİM KIYMET; Telafi Edici Vergi Hesap Formu'nda kayıtlı bulunan Birim Kıymet"],
+  ['23)', 'BİRİM KIYMET; Bu sütun formüllü olup, herhangi bir giriş yapılmayacaktır.'],
+  ['24)', "KAYITLI VERGİ ORANI; Telafi Edici Vergi Hesap Formu'nda kayıtlı bulunan Vergi Oranı"],
+  ['25)', 'İTHAL EDİLEN VERGİ ORANI; Telafi Edici Verginin hesaplanmasında esas alınacak Vergi Oranı'],
+  ['26)', 'ÖDENECEK TEV ($); Bu sütun formüllü olup, herhangi bir giriş yapılmayacaktır.'],
+  ['27)', "KAYITLI DÖVİZ KURU; Telafi Edici Vergi Hesap Formu'nda kayıtlı bulunan Döviz Kuru"],
+  ['28)', "İHRAÇ TARİHİ KURU; Telafi Edici Verginin hesaplanmasında esas alınacak İhracata ait gümrük beyannamesinin tescil tarihindeki  T.C. Merkez Bankası Döviz Satış Kuru Döviz Kuru"],
+  ['29)', "ÖDENEN TEV (TL); Telafi Edici Vergi'ye ilişkin beyan edilen Gümrük Vezne Alındısı yada Banka Dekontu'nda ödenen TEV (Anapara) tutarı"],
+  ['30)', "ÖDENEN FAİZ (TL); Telafi Edici Vergi'ye ilişkin beyan edilen Gümrük Vezne Alındısı yada Banka Dekontu'nda ödenen faiz tutarı"],
+  ['31)', "MAKBUZ TARİHİ; Telafi Edici Vergi'ye ilişkin beyan edilen Gümrük Vezne Alındısı yada Banka Dekontu'nun ödeme tarihi"],
+  ['32)', "MAKBUZ NO; Telafi Edici Vergi'ye ilişkin beyan edilen Gümrük Vezne Alındısı yada Banka Dekontu'nun nosu"],
+  ['33)', 'ANAPARA; Bu sütun formüllü olup, herhangi bir giriş yapılmayacaktır.'],
+  ['34)', 'FAİZ; Bu sütunun girişi Birlik tarafından yapılacaktır.'],
+  ['35)', 'MAHSUP İÇİN HESAPLANAN FAİZ; Bu sütunun girişi Birlik tarafından yapılacaktır.'],
+  ['36)', 'TOPLAM ÖDENMESİ GEREKEN TEV (TL); Bu sütun formüllü olup, herhangi bir giriş yapılmayacaktır.'],
+  ['37)', 'TOPLAM ÖDENEN TEV (TL); Bu sütun formüllü olup, herhangi bir giriş yapılmayacaktır.'],
+  ['38)', 'FARK; Bu sütun formüllü olup, herhangi bir giriş yapılmayacaktır.'],
+  ['39)', 'TARİH FARKI; Bu sütun formüllü olup, herhangi bir giriş yapılmayacaktır.'],
+  ['40)', "FİRELİ- TEV'e TABİ MİKTAR FARKI; (Kg/M2/Adet); Bu sütun formüllü olup, herhangi bir giriş yapılmayacaktır."]
+];
+
+/* ==========================================================================
+   Çıktı çalışma kitabı — orijinal TEV tablosunun sayfa düzenini birebir kurar
+   ========================================================================== */
+
+const XL = {
+  GREEN: 'FF92D050',      // İhracat blok başlığı
+  PEACH: 'FFFBD5B5',      // İthalat / TEV hesaplaması blok başlığı
+  MINT:  'FFCCFFCC',      // Ödenmesi gereken TEV bloğu
+  YELLOW:'FFFFFF99',      // Formüllü (*) sütunlar
+  GREY:  'FFD9D9D9'
+};
+
+const NF = {
+  n2: '#,##0.00',
+  n4: '#,##0.0000',
+  n4r: '#,##0.0000;[Red]#,##0.0000',
+  d: 'dd.mm.yyyy',
+  int: '0'
+};
+
+function thin() { return { style: 'thin', color: { argb: 'FF808080' } }; }
+function box(cell, opts = {}) {
+  cell.border = { top: thin(), left: thin(), bottom: thin(), right: thin() };
+  if (opts.fill) cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: opts.fill } };
+  if (opts.numFmt) cell.numFmt = opts.numFmt;
+  cell.font = Object.assign({ name: 'Tahoma', size: 7 }, opts.font || {});
+  cell.alignment = Object.assign({ vertical: 'middle' }, opts.align || {});
+}
+
+function headerBlock(ws, bilgi, title, listTitle, ek) {
+  ws.getCell('A1').value = ek;
+  ws.getCell('A2').value = listTitle;
+  ws.getCell('A2').font = { name: 'Tahoma', size: 10, bold: true };
+  const rows = [
+    ['Firma Adı', bilgi.firmaAdi],
+    ['Belge Tarih/No', bilgi.belgeTarihNo],
+    ['Belge Süre Sonu', bilgi.sureSonu]
+  ];
+  rows.forEach((r, i) => {
+    const rowNo = 3 + i;
+    ws.getCell(rowNo, 1).value = r[0];
+    ws.getCell(rowNo, 1).font = { name: 'Tahoma', size: 8, bold: true };
+    const c = ws.getCell(rowNo, 3);
+    c.value = r[1] || '';
+    c.font = { name: 'Tahoma', size: 8 };
+    if (r[1] instanceof Date) c.numFmt = NF.d;
+  });
+}
+
+/* ---------- İthalat listesi sayfası ------------------------------------ */
+
+function sheetIthalat(wb, name, bilgi, rows) {
+  const ws = wb.addWorksheet(name, { views: [{ state: 'frozen', ySplit: 7 }] });
+  headerBlock(ws, bilgi, null, 'DAHİLDE İŞLEME İZİN BELGESİ İLE İLGİLİ İTHALAT LİSTESİ', 'EK:9');
+
+  const hdr = ['TCGB Gümrük İdaresi Adı', 'TCGB Tescil No', 'TCGB Tescil Tarihi', 'Alıcı Vergi No',
+    'Alıcı Adı', 'Kalem No', 'Satır Kodu', 'GTİP Kodu', 'İstatistiki Miktar', 'İst. Birim Kodu',
+    'İstatistiki Kıymet', 'Kalem Rejim Kodu', 'Menşe Ülke', 'Çıkış Ülkesi', 'Kap Eşya Bilgisi',
+    'Miktar(Kg)', 'Vergi Oranı'];
+  hdr.forEach((h, i) => {
+    const c = ws.getCell(7, i + 1);
+    c.value = h;
+    box(c, { fill: XL.GREY, font: { bold: true, size: 7 }, align: { horizontal: 'center', wrapText: true } });
+  });
+  ws.getRow(7).height = 34;
+
+  rows.forEach((r, i) => {
+    const n = 8 + i;
+    const vals = [r.gumruk, r.gbNo, r.tarih, r.vergiNo, r.unvan, r.kalem, r.satirKodu, r.gtip,
+      r.istMiktar, r.istBirim, r.istKiymet, r.rejim, r.mensei, r.cikis, r.kap, r.miktarKg, r.vergiOrani];
+    vals.forEach((v, j) => {
+      const c = ws.getCell(n, j + 1);
+      c.value = v === undefined ? null : v;
+      const fmt = j === 2 ? NF.d : ([8, 10, 15, 16].includes(j) ? NF.n2 : null);
+      box(c, { numFmt: fmt, align: { wrapText: false } });
+    });
+  });
+
+  const last = 7 + rows.length;
+  const tot = last + 1;
+  [[9, 'I'], [11, 'K'], [16, 'P']].forEach(([col, L]) => {
+    const c = ws.getCell(tot, col);
+    c.value = { formula: `SUM(${L}8:${L}${last})` };
+    box(c, { numFmt: NF.n2, font: { bold: true, size: 7 }, fill: XL.GREY });
+  });
+
+  ws.getCell(tot + 2, 1).value = 'NOT:';
+  ws.getCell(tot + 2, 1).font = { name: 'Tahoma', size: 8, bold: true };
+  NOT_ITHALAT.forEach((t, i) => {
+    const c = ws.getCell(tot + 3 + i, 1);
+    c.value = t;
+    c.font = { name: 'Tahoma', size: 7 };
+  });
+
+  [26, 11, 12, 12, 34, 7, 14, 13, 12, 8, 13, 9, 14, 14, 34, 12, 8]
+    .forEach((w, i) => { ws.getColumn(i + 1).width = w; });
+  return ws;
+}
+
+/* ---------- İhracat listesi sayfası ------------------------------------ */
+
+function sheetIhracat(wb, bilgi, rows) {
+  const ws = wb.addWorksheet('İhracat Listesi', { views: [{ state: 'frozen', ySplit: 7 }] });
+  ws.getCell('D1').value = 'EK:8';
+  ws.getCell('D2').value = 'DAHİLDE İŞLEME İZİN BELGESİ İLE İLGİLİ İHRACAT LİSTESİ';
+  ws.getCell('D2').font = { name: 'Tahoma', size: 10, bold: true };
+  [['Firma Adı', bilgi.firmaAdi], ['Belge Tarih/No', bilgi.belgeTarihNo], ['Belge Süre Sonu', bilgi.sureSonu]]
+    .forEach((r, i) => {
+      ws.getCell(3 + i, 4).value = r[0];
+      ws.getCell(3 + i, 4).font = { name: 'Tahoma', size: 8, bold: true };
+      const c = ws.getCell(3 + i, 6);
+      c.value = r[1] || '';
+      c.font = { name: 'Tahoma', size: 8 };
+      if (r[1] instanceof Date) c.numFmt = NF.d;
+    });
+
+  const hdr = ['TEVLİ / TEVSİZ', 'TCGB Gümrük İdaresi Adı', 'TCGB Tescil No', 'TCGB Tescil Tarihi',
+    'Gönderici Vergi No', 'Gönderici Adı', 'Kalem No', 'İhracat\nSatır Kodu', 'İthalat\nSatır Kodu',
+    'GTİP Kodu', 'İstatistiki Miktar', 'İst. Birim Kodu', 'İstatistiki Kıymet', 'Kalem Rejim Kodu',
+    'Menşe Ülke', 'Çıkış Ülkesi', 'Kap Eşya Bilgisi', 'Miktar\n(Kg)', 'Karışım\nOranı',
+    'Fireli Miktar (kg)', 'Gideceği Ülke'];
+  hdr.forEach((h, i) => {
+    const c = ws.getCell(7, i + 3);
+    c.value = h;
+    box(c, { fill: XL.GREY, font: { bold: true, size: 7 }, align: { horizontal: 'center', wrapText: true } });
+  });
+  ws.getRow(7).height = 36;
+
+  rows.forEach((r, i) => {
+    const n = 8 + i;
+    const vals = [r.tevli, r.gumruk, r.gbNo, r.tarih, r.vergiNo, r.unvan, r.kalem, r.ihrSatir, r.ithSatir,
+      r.gtip, r.istMiktar, r.istBirim, r.istKiymet, r.rejim, r.mensei, r.cikis, r.kap,
+      r.miktarKg, r.oran, r.fireliMiktar, r.varis];
+    vals.forEach((v, j) => {
+      const c = ws.getCell(n, j + 3);
+      c.value = v === undefined ? null : v;
+      const fmt = j === 3 ? NF.d : ([10, 12, 17, 19].includes(j) ? NF.n2 : (j === 18 ? NF.n4 : null));
+      box(c, { numFmt: fmt, fill: r.tevli !== 'TEVSİZ' ? 'FFEAF5DC' : undefined });
+    });
+  });
+
+  const last = 7 + rows.length;
+  const tot = last + 1;
+  [['T', 20], ['V', 22]].forEach(([L, col]) => {
+    const c = ws.getCell(tot, col);
+    c.value = { formula: `SUBTOTAL(9,${L}8:${L}${last})` };
+    box(c, { numFmt: NF.n2, font: { bold: true, size: 7 }, fill: XL.GREY });
+  });
+
+  ws.getCell(tot + 2, 4).value = 'NOT:';
+  ws.getCell(tot + 2, 4).font = { name: 'Tahoma', size: 8, bold: true };
+  NOT_IHRACAT.forEach((t, i) => {
+    const c = ws.getCell(tot + 3 + i, 4);
+    c.value = t;
+    c.font = { name: 'Tahoma', size: 7 };
+  });
+
+  const widths = { 1: 3, 2: 3, 3: 13, 4: 26, 5: 11, 6: 12, 7: 12, 8: 34, 9: 7, 10: 14, 11: 14,
+    12: 15, 13: 11, 14: 8, 15: 12, 16: 9, 17: 12, 18: 12, 19: 34, 20: 12, 21: 8, 22: 14, 23: 13 };
+  Object.entries(widths).forEach(([k, w]) => { ws.getColumn(+k).width = w; });
+  return ws;
+}
+
+/* ---------- TEV TABLOSU ------------------------------------------------- */
+
+function sheetTev(wb, bilgi, rows) {
+  const ws = wb.addWorksheet('TEV TABLOSU', { views: [{ state: 'frozen', xSplit: 0, ySplit: 7 }] });
+
+  ws.mergeCells('A1:AL1');
+  const t = ws.getCell('A1');
+  t.value = 'TELAFİ EDİCİ VERGİ TABLOSU';
+  t.font = { name: 'Tahoma', size: 11, bold: true };
+  t.alignment = { horizontal: 'center', vertical: 'middle' };
+
+  [['Firma Adı', bilgi.firmaAdi], ['Belge Tarih/No', bilgi.belgeTarihNo], ['Vergi No', bilgi.vergiNo]]
+    .forEach((r, i) => {
+      const n = 2 + i;
+      ws.getCell(n, 1).value = r[0];
+      ws.getCell(n, 1).font = { name: 'Tahoma', size: 8, bold: true };
+      const c = ws.getCell(n, 4);
+      c.value = r[1] || '';
+      c.font = { name: 'Tahoma', size: 8 };
+    });
+
+  // Blok başlıkları
+  const blocks = [
+    ['A5', 'H5', 'İHRACAT', XL.GREEN],
+    ['I5', 'Q5', 'ÜÇÜNCÜ ÜLKEDEN İTHALAT', XL.PEACH],
+    ['R5', 'AD5', 'TEV HESAPLAMASI (TL)', XL.PEACH],
+    ['AE6', 'AL6', 'ÖDENMESİ GEREKEN TEV (TL)', XL.MINT]
+  ];
+  blocks.forEach(([a, b, label, fill]) => {
+    ws.mergeCells(a + ':' + b);
+    const c = ws.getCell(a);
+    c.value = label;
+    c.font = { name: 'Tahoma', size: 8, bold: true };
+    c.alignment = { horizontal: 'center', vertical: 'middle' };
+    c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: fill } };
+    c.border = { top: thin(), left: thin(), bottom: thin(), right: thin() };
+  });
+
+  const hdr = ['Gümrük', 'GB No', 'GB Tarih', 'Satır Kodu', 'GTİP', 'Madde Adı', 'Miktar', 'Fireli Miktar',
+    'Sıra', 'Gümrük', 'GB No', 'GB Tarih', 'Satır Kodu', 'GTİP', 'Madde Adı', 'Miktar', 'Değer',
+    'Ödenen Miktar', "TEV'e Tabi Miktar", 'Kayıtlı B.K.', '(*)   B.K.', 'Kayıtlı V.O.',
+    'İthal Edilen V.O.', '(*) Ödenecek TEV ($)', 'Kayıtlı Döviz Kuru', 'İhraç Tarihi Kuru',
+    'Ödenen TEV (TL)', 'Öd. Faiz (TL)', 'Makbuz Tarihi', 'Makbuz No', '(*) Anapara', '(*) Faiz',
+    '(*) Mahs. İçin Hesp. Faiz', '(*) Toplam Öd. Gereken TEV (TL)', '(*) Toplam Ödenen (TL)',
+    '(*) Fark', '(*) Tarih Farkı', "(*) Fireli TEV'e Tabi Miktar Farkı (Kg)"];
+  const YELLOW_COLS = [21, 24, 31, 32, 33, 34, 35, 36, 37, 38];
+  hdr.forEach((h, i) => {
+    const col = i + 1;
+    const c = ws.getCell(7, col);
+    c.value = h;
+    let fill = XL.PEACH;
+    if (col <= 8) fill = XL.GREEN;
+    if (col >= 31) fill = XL.MINT;
+    if (YELLOW_COLS.includes(col)) fill = XL.YELLOW;
+    box(c, { fill, font: { size: 7, bold: YELLOW_COLS.includes(col) }, align: { horizontal: 'center', wrapText: true } });
+  });
+  ws.getRow(7).height = 46;
+
+  rows.forEach((r, i) => {
+    const n = 8 + i;
+    const vals = [
+      TR.kisaGumruk(r.gumruk), r.gbNo, r.gbTarih, r.satirKodu, r.gtip, r.maddeAdi, r.miktar, r.fireliMiktar,
+      r.sira, TR.kisaGumruk(r.ithGumruk), r.ithGbNo, r.ithGbTarih, r.ithSatirKodu, r.ithGtip, r.ithMaddeAdi,
+      r.ithMiktar, r.deger, r.odenenMiktar, r.tevTabiMiktar, r.kayitliBK,
+      { formula: `Q${n}/P${n}` }, r.kayitliVO, r.ithalVO, { formula: `S${n}*U${n}*W${n}/100` },
+      r.kayitliKur, r.ihracKur, r.odenenTev, r.odenenFaiz, r.makbuzTarihi, r.makbuzNo,
+      { formula: `X${n}*Z${n}` }, null, null,
+      { formula: `AE${n}+AF${n}+AG${n}` }, { formula: `AA${n}+AB${n}` }, { formula: `AI${n}-AH${n}` },
+      { formula: `AC${n}-C${n}` }, { formula: `H${n}-S${n}` }
+    ];
+    vals.forEach((v, j) => {
+      const col = j + 1;
+      const c = ws.getCell(n, col);
+      c.value = v === undefined ? null : v;
+      let fmt = null;
+      if ([3, 12, 29].includes(col)) fmt = NF.d;
+      else if ([7, 8, 16, 17, 18, 19, 22, 23, 24, 27, 28, 31, 32, 33, 34, 35, 36, 38].includes(col)) fmt = NF.n2;
+      else if (col === 20 || col === 21) fmt = NF.n4r;
+      else if (col === 25 || col === 26) fmt = NF.n4;
+      else if (col === 37) fmt = NF.int;
+      box(c, {
+        numFmt: fmt,
+        fill: YELLOW_COLS.includes(col) ? XL.YELLOW : undefined,
+        align: { wrapText: true, vertical: 'middle', horizontal: col === 6 || col === 15 ? 'left' : undefined }
+      });
+    });
+    ws.getRow(n).height = 34;
+  });
+
+  const last = 7 + rows.length;
+  const sub = last + 3;
+  const sumRow = last + 4;
+  const SUMCOLS = [['G', 7], ['H', 8], ['R', 18], ['S', 19], ['AA', 27], ['AE', 31], ['AH', 34],
+    ['AI', 35], ['AJ', 36], ['AK', 37], ['AL', 38]];
+  SUMCOLS.forEach(([L, col]) => {
+    const c = ws.getCell(sub, col);
+    c.value = { formula: `SUBTOTAL(9,${L}8:${L}${last})` };
+    box(c, { numFmt: col === 37 ? NF.int : NF.n2, font: { bold: true, size: 7 }, fill: XL.GREY });
+  });
+  [['G', 7], ['H', 8], ['R', 18], ['S', 19], ['AA', 27]].forEach(([L, col]) => {
+    const c = ws.getCell(sumRow, col);
+    c.value = { formula: `SUM(${L}8:${L}${last})` };
+    box(c, { numFmt: NF.n2, font: { bold: true, size: 7 }, fill: XL.GREY });
+  });
+  ws.getCell(sub, 1).value = 'Ara toplam';
+  ws.getCell(sub, 1).font = { name: 'Tahoma', size: 7, bold: true };
+  ws.getCell(sumRow, 1).value = 'Genel toplam';
+  ws.getCell(sumRow, 1).font = { name: 'Tahoma', size: 7, bold: true };
+
+  const noteStart = sumRow + 3;
+  NOT_TEV.forEach((r, i) => {
+    const n = noteStart + i;
+    if (r[0]) {
+      ws.getCell(n, 2).value = r[0];
+      ws.getCell(n, 2).font = { name: 'Tahoma', size: 7 };
+    }
+    ws.mergeCells(n, 3, n, 13);
+    const c = ws.getCell(n, 3);
+    c.value = r[1];
+    c.font = { name: 'Tahoma', size: 7, bold: !r[0] };
+    c.alignment = { horizontal: 'left', vertical: 'middle' };
+  });
+
+  const widths = [11.9, 9.6, 10.3, 10.7, 15.7, 12.3, 15.1, 15.1, 4, 8.6, 9.6, 8.6, 11.7, 12.1, 9.7,
+    9.9, 9, 15.1, 16.7, 12.7, 6.1, 4.4, 4.6, 6.9, 6.7, 8.9, 16.1, 8, 9.1, 12.3, 15.1, 3.4, 4.7,
+    17.1, 18.3, 12.7, 9.6, 10.3];
+  widths.forEach((w, i) => { ws.getColumn(i + 1).width = w; });
+  return ws;
+}
+
+/* ---------- Kontrol ----------------------------------------------------- */
+
+function sheetKontrol(wb, kontrol) {
+  const ws = wb.addWorksheet('kontrol');
+  ws.getColumn(1).width = 52;
+  ws.getColumn(2).width = 20;
+  ws.getColumn(3).width = 46;
+
+  let n = 1;
+  kontrol.forEach(k => {
+    const başlık = ws.getCell(n, 1);
+    başlık.value = `${k.kod} satır kodlu ithalat için`;
+    başlık.font = { name: 'Tahoma', size: 9, bold: true };
+    ws.getCell(n, 3).value = k.ad || '';
+    ws.getCell(n, 3).font = { name: 'Tahoma', size: 8, italic: true };
+    n += 2;
+
+    const r0 = n;
+    const satirlar = [
+      ['İTHALAT LİSTESİ - VERGİLİ MİKTAR', k.ithalatVergili],
+      ['İHRACAT LİSTESİ - VERGİLİ FİRELİ MİKTAR', k.ihracatVergiliFireli],
+      ['ÜÇÜNCÜ ÜLKE - İHRACAT LİSTESİ - VERGİLİ FİRELİ MİKTAR', k.ucuncuUlke]
+    ];
+    satirlar.forEach(([lbl, v], i) => {
+      ws.getCell(n + i, 1).value = lbl;
+      ws.getCell(n + i, 1).font = { name: 'Tahoma', size: 8 };
+      const c = ws.getCell(n + i, 2);
+      c.value = v;
+      c.numFmt = NF.n2;
+      c.font = { name: 'Tahoma', size: 8 };
+    });
+    n += 3;
+    const c1 = ws.getCell(n, 2);
+    c1.value = { formula: `SUM(B${r0 + 1}:B${r0 + 2})` };
+    c1.numFmt = NF.n2;
+    c1.font = { name: 'Tahoma', size: 8, bold: true };
+    n += 2;
+
+    const rVsiz = n;
+    ws.getCell(n, 1).value = 'İTHALAT LİSTESİ - VERGİSİZ MİKTAR';
+    ws.getCell(n, 1).font = { name: 'Tahoma', size: 8 };
+    ws.getCell(n, 2).value = k.ithalatVergisiz;
+    ws.getCell(n, 2).numFmt = NF.n2;
+    ws.getCell(n + 1, 1).value = 'İHRACAT LİSTESİ - VERGİSİZ FİRELİ MİKTAR';
+    ws.getCell(n + 1, 1).font = { name: 'Tahoma', size: 8 };
+    ws.getCell(n + 1, 2).value = k.ihracatVergisizFireli;
+    ws.getCell(n + 1, 2).numFmt = NF.n2;
+    n += 3;
+
+    ws.getCell(n, 1).value = 'SAĞLAMA-SARFİYAT DEĞERİ';
+    ws.getCell(n, 1).font = { name: 'Tahoma', size: 8, bold: true };
+    const c2 = ws.getCell(n, 2);
+    c2.value = { formula: `B${rVsiz}+B${r0}-B${r0 + 1}-B${r0 + 2}-B${rVsiz + 1}` };
+    c2.numFmt = NF.n2;
+    c2.font = { name: 'Tahoma', size: 8, bold: true };
+    c2.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: XL.YELLOW } };
+    n += 3;
+  });
+  return ws;
+}
+
+function sheetUlkeler(wb, ulkeler) {
+  const ws = wb.addWorksheet('ÜLKELER');
+  const satirlar = ulkelerTablosu(ulkeler || ULKELER_VARSAYILAN);
+  satirlar.forEach((row, i) => {
+    row.forEach((v, j) => {
+      const c = ws.getCell(i + 1, j + 1);
+      c.value = v;
+      c.font = { name: 'Tahoma', size: 8, bold: i === 0 };
+      if (v) c.border = { top: thin(), left: thin(), bottom: thin(), right: thin() };
+      if (i === 0 && v) c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: XL.GREY } };
+    });
+  });
+  const disarida = (ulkeler || ULKELER_VARSAYILAN).disarida || [];
+  if (disarida.length) {
+    const bas = satirlar.length + 2;
+    ws.getCell(bas, 1).value = 'Yürürlükte olmayanlar';
+    ws.getCell(bas, 1).font = { name: 'Tahoma', size: 8, bold: true };
+    disarida.forEach((t, i) => {
+      const c = ws.getCell(bas + 1 + i, 1);
+      c.value = t;
+      c.font = { name: 'Tahoma', size: 7 };
+    });
+  }
+  [22, 22, 18, 34].forEach((w, i) => { ws.getColumn(i + 1).width = w; });
+  return ws;
+}
+
+/* ---------- Kitabı derle ------------------------------------------------ */
+
+async function buildWorkbook(model) {
+  const wb = new ExcelJS.Workbook();
+  wb.creator = 'TEV Tablosu Oluşturma Paneli';
+  wb.created = new Date();
+
+  sheetUlkeler(wb, model.ulkeler);
+  if (model.ithalat.length) {
+    sheetIthalat(wb, ' İthalat Listesi', model.bilgi, model.ithalat);
+    sheetIthalat(wb, ' İthalat Vergili', model.bilgi, model.ithalat.filter(r => r.vergiOrani > 0));
+  }
+  if (model.ihracat.length) sheetIhracat(wb, model.bilgi, model.ihracat);
+  sheetTev(wb, model.bilgi, model.tev);
+  if (model.kontrol.length) sheetKontrol(wb, model.kontrol);
+
+  const buf = await wb.xlsx.writeBuffer();
+  return new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+}
+
+
+/* ======================= Arayüz ======================= */
+
+const state = { kaynak: {}, model: null, sonBelge: null, kimlik: null,
+                aktifPanel: 'tev', hamYok: false, silAdayi: null, dusAdayi: null, filtreler: {},
+                alanlar: { firmaAdi: '', belgeTarihNo: '', vergiNo: '', sureSonu: '' } };
+
+/* ---- Kalıcı depo. Dosya tarayıcıda açıldığında localStorage kullanılır;
+       erişilemezse kayıtlar yalnızca bu oturum boyunca bellekte tutulur. ---- */
+const Depo = {
+  anahtar: 'tev-arsiv-v1',
+  bellek: {},
+  acik: (() => { try { localStorage.setItem('__tev', '1'); localStorage.removeItem('__tev'); return true; }
+                 catch (e) { return false; } })(),
+  oku() {
+    if (!this.acik) return this.bellek;
+    try { return JSON.parse(localStorage.getItem(this.anahtar) || '{}'); } catch (e) { return {}; }
+  },
+  yaz(v) {
+    if (!this.acik) { this.bellek = v; return true; }
+    try { localStorage.setItem(this.anahtar, JSON.stringify(v)); return true; }
+    catch (e) { return false; }
+  }
+};
+
+const UlkeDepo = {
+  anahtar: 'tev-ulkeler-v1',
+  bellek: null,
+  oku(){
+    if (!Depo.acik) return this.bellek || JSON.parse(JSON.stringify(ULKELER_VARSAYILAN));
+    try {
+      const h = localStorage.getItem(this.anahtar);
+      return h ? JSON.parse(h) : JSON.parse(JSON.stringify(ULKELER_VARSAYILAN));
+    } catch (e) { return JSON.parse(JSON.stringify(ULKELER_VARSAYILAN)); }
+  },
+  yaz(v){
+    if (!Depo.acik) { this.bellek = v; return true; }
+    try { localStorage.setItem(this.anahtar, JSON.stringify(v)); return true; } catch (e) { return false; }
+  },
+  sifirla(){ this.yaz(JSON.parse(JSON.stringify(ULKELER_VARSAYILAN))); }
+};
+
+function arsivNot(mesaj, kalici){
+  const el = document.getElementById('arsivNot');
+  el.textContent = mesaj || '';
+  if (mesaj && !kalici) setTimeout(() => { if (el.textContent === mesaj) el.textContent = ''; }, 4000);
+}
+
+function duzeltmeListesi(tev){
+  return tev.map(r => r.duzeltildi ? {
+    gbNo: r.gbNo, satirKodu: r.satirKodu, ithGbNo: r.ithGbNo, ithSatirKodu: r.ithSatirKodu,
+    deger: r.tevTabiMiktar, kaynakDeger: r.tevTabiKaynak
+  } : null).filter(Boolean);
+}
+
+function kayitKur(no, m, kaynak, alanlar){
+  const hamVar = !!(kaynak && kaynak.tev);
+  return {
+    belgeNo: no,
+    kaydedildi: new Date().toISOString(),
+    firmaAdi: alanlar.firmaAdi, belgeTarihNo: alanlar.belgeTarihNo,
+    vergiNo: alanlar.vergiNo, sureSonu: alanlar.sureSonu,
+    kaynak: hamVar ? kaynak : null,
+    model: hamVar ? null : {
+      bilgi: m.bilgi, tev: m.tev, ithalat: m.ithalat, ihracat: m.ihracat, kontrol: m.kontrol,
+      eksikSatirKodlari: m.eksikSatirKodlari, ucuncuUlke: m.ucuncuUlke,
+      belgeSayisi: m.belgeSayisi, kaynakDosyalar: m.kaynakDosyalar
+    },
+    duzeltmeler: duzeltmeListesi(m.tev),
+    ozet: {
+      tevSatir: m.tev.length, ihracatSatir: m.ihracat.length, ithalatSatir: m.ithalat.length,
+      dosyalar: hamVar ? Object.keys(kaynak) : (m.kaynakDosyalar || []), hamVar
+    }
+  };
+}
+
+function formAlanlari(){ return Object.assign({}, state.alanlar); }
+
+function belgeKaydet(){
+  if (!state.model) return;
+  const no = state.model.bilgi.belgeNo || 'belgesiz';
+  const arsiv = Depo.oku();
+  const oncekiArsiv = JSON.stringify(arsiv);
+  const onceki = arsiv[no];
+  arsiv[no] = kayitKur(no, state.model, state.hamYok ? null : state.kaynak, formAlanlari());
+  arsiv[no].kimlik = state.kimlik || (onceki && onceki.kimlik) || null;
+  if (!Depo.yaz(arsiv)) {
+    Depo.yaz(JSON.parse(oncekiArsiv));
+    arsivNot('Depo dolu, kayıt yapılamadı. Eski belgelerin ham verisini silmeyi deneyin.', true);
+  }
+  arsivCiz();
+}
+
+function boyutYazi(bayt){
+  if (bayt < 1024) return bayt + ' B';
+  if (bayt < 1024 * 1024) return (bayt / 1024).toFixed(0) + ' KB';
+  return (bayt / 1024 / 1024).toFixed(1) + ' MB';
+}
+
+function arsivCiz(){
+  const arsiv = Depo.oku();
+  const kayitlar = Object.values(arsiv).sort((a, b) => (b.kaydedildi || '').localeCompare(a.kaydedildi || ''));
+  const cubuk = document.getElementById('arsivCubugu');
+  cubuk.hidden = kayitlar.length === 0;
+  document.getElementById('arsivListesi').innerHTML = kayitlar.map(k => {
+    if (state.silAdayi === k.belgeNo) {
+      return `<span class="chip silme">
+        <span class="soru">${esc(k.belgeNo)} · ne silinsin?</span>
+        <button class="secim" data-hamsil="${esc(k.belgeNo)}" ${k.ozet && k.ozet.hamVar ? '' : 'disabled'}
+          title="Yüklenen Excel verileri silinir, hazırlanmış tablo kalır">Sadece Excel'ler</button>
+        <button class="secim tam" data-tamsil="${esc(k.belgeNo)}"
+          title="Belgeye ait her şey silinir">Tamamen</button>
+        <button class="secim" data-vazgec="1">Vazgeç</button>
+      </span>`;
+    }
+    const t = new Date(k.kaydedildi);
+    const tarih = isNaN(t) ? '' : `${String(t.getDate()).padStart(2, '0')}.${String(t.getMonth() + 1).padStart(2, '0')} ${String(t.getHours()).padStart(2, '0')}:${String(t.getMinutes()).padStart(2, '0')}`;
+    const d = (k.duzeltmeler || []).length;
+    const o = k.ozet || {};
+    const boyut = boyutYazi(JSON.stringify(k).length);
+    // Ayrıntılar karta yazılmıyor; üzerine gelince ipucu olarak görünüyor
+    const ipucu = [
+      (o.tevSatir || 0) + ' satır',
+      d ? d + ' düzeltme' : null,
+      o.hamVar === false ? 'ham veri yok' : boyut,
+      tarih
+    ].filter(Boolean).join(' · ');
+    return `<span class="chip ${k.belgeNo === state.sonBelge ? 'aktif' : ''} ${o.hamVar === false ? 'hafif' : ''}">
+      <button class="ac" data-ac="${esc(k.belgeNo)}" title="${esc(ipucu)}">${esc(k.belgeNo)}</button>
+      <button class="sil" data-sil="${esc(k.belgeNo)}" title="Sil" aria-label="${esc(k.belgeNo)} kaydını sil">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4.5 4.5l7 7M11.5 4.5l-7 7"/></svg>
+      </button>
+    </span>`;
+  }).join('');
+  const toplam = JSON.stringify(arsiv).length;
+  const bilgi = document.getElementById('arsivBoyut');
+  bilgi.textContent = kayitlar.length ? `${kayitlar.length} belge · ${boyutYazi(toplam)}` : '';
+  bilgi.title = 'Tarayıcı deposunda kaplanan yer';
+}
+
+function tarihCanlandir(m){
+  const alan = (o, ...adlar) => adlar.forEach(a => { if (o[a]) o[a] = TR.date(o[a]); });
+  (m.tev || []).forEach(r => alan(r, 'gbTarih', 'ithGbTarih', 'makbuzTarihi'));
+  (m.ihracat || []).forEach(r => alan(r, 'tarih'));
+  (m.ithalat || []).forEach(r => alan(r, 'tarih'));
+  if (m.bilgi) alan(m.bilgi, 'sureSonu');
+  return m;
+}
+
+function belgeAc(no){
+  const arsiv = Depo.oku();
+  const k = arsiv[no];
+  if (!k) return;
+  if (state.model && state.sonBelge && state.sonBelge !== no) belgeKaydet();
+  state.kaynak = k.kaynak || {};
+  state.hamYok = !k.kaynak;
+  state.kimlik = k.kimlik || null;
+  state.filtreler = {};
+  state.model = null;
+  state.sonBelge = no;
+  state.aktifPanel = 'tev';
+  state.alanlar = {
+    firmaAdi: k.firmaAdi || '', belgeTarihNo: k.belgeTarihNo || '',
+    vergiNo: k.vergiNo || '', sureSonu: k.sureSonu || ''
+  };
+  tazeleEvrak();
+  document.getElementById('rozet').hidden = false;
+  document.getElementById('rozetNo').textContent = no;
+  const durum = (k.kaynak && k.kaynak.tev && k.kaynak.tev.veri[0] || {}).BELGEDURUM;
+  document.getElementById('rozetDurum').textContent = durum ? 'Belge · ' + durum : 'Belge';
+  if (k.kaynak) {
+    state.model = kurModel();
+    duzeltmeleriUygula(k.duzeltmeler);
+  } else {
+    state.model = tarihCanlandir(JSON.parse(JSON.stringify(k.model)));
+    state.model.hamYok = true;
+    state.model.ulkeler = UlkeDepo.oku();
+    duzeltmeleriUygula(k.duzeltmeler);
+  }
+  ciz();
+  arsivCiz();
+}
+
+/* Ham verileri sil: yüklenen Excel içerikleri atılır, hazırlanmış tablo kalır. */
+function hamVerileriSil(no){
+  const arsiv = Depo.oku();
+  const k = arsiv[no];
+  if (!k) return;
+  if (!k.kaynak) { arsivNot(no + ' zaten ham verisiz.'); return; }
+  const oncekiBoyut = JSON.stringify(k).length;
+  let m;
+  if (state.sonBelge === no && state.model) {
+    m = state.model;
+  } else {
+    m = modelKur(k.kaynak, k);
+    duzeltmeleriUygulaModel(m, k.duzeltmeler);
+  }
+  arsiv[no] = kayitKur(no, m, null, k);
+  arsiv[no].kimlik = k.kimlik || null;
+  arsiv[no].kaydedildi = k.kaydedildi;
+  if (!Depo.yaz(arsiv)) { arsivNot('Silme kaydedilemedi.', true); return; }
+  if (state.sonBelge === no) {
+    state.kaynak = {};
+    state.hamYok = true;
+    state.model.hamYok = true;
+    tazeleEvrak();
+    ciz();
+  }
+  arsivCiz();
+  arsivNot(`${no} · ham veriler silindi, ${boyutYazi(oncekiBoyut)} → ${boyutYazi(JSON.stringify(arsiv[no]).length)}`);
+}
+
+function duzeltmeleriUygula(liste){ duzeltmeleriUygulaModel(state.model, liste); }
+
+function duzeltmeleriUygulaModel(m, liste){
+  (liste || []).forEach(d => {
+    const r = m.tev.find(x => x.gbNo === d.gbNo && x.satirKodu === d.satirKodu &&
+                              x.ithGbNo === d.ithGbNo && x.ithSatirKodu === d.ithSatirKodu);
+    if (!r) return;
+    r.tevTabiKaynak = d.kaynakDeger !== undefined ? d.kaynakDeger : r.tevTabiMiktar;
+    r.tevTabiMiktar = d.deger;
+    r.duzeltildi = Math.abs(r.tevTabiMiktar - r.tevTabiKaynak) > 1e-6;
+  });
+}
+
+function tamamenSil(no){
+  const arsiv = Depo.oku();
+  delete arsiv[no];
+  Depo.yaz(arsiv);
+  if (state.sonBelge === no) yeniBelge(false);
+  arsivCiz();
+  arsivNot(no + ' kaydı tamamen silindi.');
+}
+
+function yeniBelge(kaydet){
+  if (kaydet !== false) belgeKaydet();
+  state.kaynak = {};
+  state.hamYok = false;
+  state.model = null;
+  state.sonBelge = null;
+  state.kimlik = null;
+  state.aktifPanel = 'tev';
+  state.filtreler = {};
+  state.alanlar = { firmaAdi: '', belgeTarihNo: '', vergiNo: '', sureSonu: '' };
+  document.getElementById('rozet').hidden = true;
+  document.getElementById('stage').innerHTML = BOS_HTML;
+  tazeleEvrak();
+  arsivCiz();
+}
+
+function kurDropAciklama(){
+  const t = Object.values(DOC_TYPES);
+  const zorunlu = t.filter(d => d.required).map(d => d.label);
+  const opsiyon = t.filter(d => !d.required).map(d => d.label);
+  const Z = zorunlu.join(', ');
+  const O = opsiyon.slice(0, -1).join(', ') + ' ve ' + opsiyon[opsiyon.length - 1];
+  document.getElementById('dropAciklama').innerHTML =
+    `Belge başına altı dosya: <b>${Z}</b> zorunlu; ${O} isteğe bağlı. Dosya adları önemli değil, tür ve belge içerikten anlaşılır; birden çok belgenin dosyalarını aynı anda bırakabilirsiniz ve tablo kendiliğinden oluşur.`;
+}
+
+function tazeleEvrak(){
+  document.getElementById('hamNot').hidden = !state.hamYok;
+}
+
+/* ---- dosya okuma ---- */
+
+function okuTablo(buf){
+  const wb = XLSX.read(buf, { type: 'array', cellDates: true });
+  const ws = wb.Sheets[wb.SheetNames[0]];
+  return XLSX.utils.sheet_to_json(ws, { header: 1, raw: true, defval: null, blankrows: false });
+}
+
+async function dosyaAl(file){
+  const buf = await file.arrayBuffer();
+  const bytes = new Uint8Array(buf.slice(0, 4));
+  const zip = bytes[0] === 0x50 && bytes[1] === 0x4B;
+  let rows = null, metin = null;
+  if (zip) {
+    rows = okuTablo(buf);
+  } else {
+    metin = new TextDecoder('utf-8').decode(buf);
+    if (!/<table/i.test(metin)) { rows = okuTablo(buf); metin = null; }
+  }
+  const tip = detectType(rows || [], metin);
+  if (!tip) throw new Error(`${file.name}: dosya türü tanınmadı.`);
+
+  let veri;
+  if (tip === 'tev') veri = parseTev(rows);
+  else if (tip === 'git' || tip === 'gih') veri = parseBeyanname(rows);
+  else if (tip === 'oit') veri = parseOit(rows);
+  else if (tip === 'oih') veri = parseOih(rows);
+  else if (tip === 'gs') veri = parseSarfiyat(metin);
+
+  return { tip, kimlik: kaynakKimlik(tip, veri), dosyaAdi: file.name, veri };
+}
+
+const nefes = () => new Promise(r => setTimeout(r, 0));
+
+function ilerlemeGoster(ad, bitti, toplam){
+  const kutu = document.getElementById('ilerleme');
+  kutu.hidden = false;
+  document.getElementById('drop').classList.add('mesgul');
+  document.getElementById('ilerlemeAd').textContent = ad;
+  document.getElementById('ilerlemeSayi').textContent = bitti + ' / ' + toplam;
+  document.getElementById('ilerlemeDolu').style.width = Math.round(bitti / toplam * 100) + '%';
+}
+
+function ilerlemeKapat(){
+  document.getElementById('drop').classList.remove('mesgul');
+  setTimeout(() => {
+    document.getElementById('ilerleme').hidden = true;
+    document.getElementById('ilerlemeDolu').style.width = '0';
+  }, 450);
+}
+
+async function dosyalariAl(list){
+  const hatalar = [];
+  const gruplar = new Map();      // belge kimliği -> { tip: {dosyaAdi, veri} }
+  const kimliksiz = {};
+  const toplam = list.length;
+  let bitti = 0;
+
+  for (const f of list) {
+    ilerlemeGoster(f.name, bitti, toplam);
+    await nefes();
+    try {
+      const p = await dosyaAl(f);
+      const hedef = p.kimlik ? (gruplar.get(p.kimlik) || gruplar.set(p.kimlik, {}).get(p.kimlik)) : kimliksiz;
+      hedef[p.tip] = { dosyaAdi: p.dosyaAdi, veri: p.veri };
+    } catch (e) { hatalar.push(e.message || String(e)); }
+    bitti++;
+    ilerlemeGoster(f.name, bitti, toplam);
+  }
+
+  // Kimliği çözülemeyen dosyalar tek bir belge yüklemesindeyse ona katılır
+  if (Object.keys(kimliksiz).length) {
+    if (gruplar.size === 1) Object.assign(gruplar.values().next().value, kimliksiz);
+    else if (state.sonBelge && state.kaynak.tev) Object.assign(state.kaynak, kimliksiz);
+    else hatalar.push('Hangi belgeye ait olduğu anlaşılamayan dosyalar atlandı.');
+  }
+
+  ilerlemeGoster(gruplar.size > 1 ? `${gruplar.size} belge hazırlanıyor…` : 'Tablo hazırlanıyor…', toplam, toplam);
+  await nefes();
+
+  const arsiv = Depo.oku();
+  const kurulan = [];
+  const yenilenen = [];
+
+  for (const [kimlik, gelen] of gruplar) {
+    const onceki = Object.values(arsiv).find(k => k.kimlik === kimlik);
+    let kaynak = gelen;
+    if (!gelen.tev) {
+      // TEV raporu gelmedi: mevcut belgeye ek dosya olarak katılır
+      if (onceki && onceki.kaynak && onceki.kaynak.tev) {
+        kaynak = Object.assign({}, onceki.kaynak, gelen);
+      } else if (state.kaynak.tev && state.sonBelge) {
+        Object.assign(state.kaynak, gelen);
+        kurulan.push(state.sonBelge);
+        continue;
+      } else {
+        hatalar.push(`${kimlik} için TEV raporu yok; bu dosyalar kullanılamadı.`);
+        continue;
+      }
+    } else if (onceki) {
+      yenilenen.push(onceki.belgeNo);
+    }
+
+    try {
+      const b = belgeBilgisi(kaynak.tev.veri, kaynak.git && kaynak.git.veri, kaynak.gih && kaynak.gih.veri);
+      const alanlar = {
+        firmaAdi: b.firmaAdi, belgeTarihNo: b.belgeTarihNo, vergiNo: b.vergiNo,
+        sureSonu: (onceki && onceki.sureSonu) || ''      // elle girilen süre sonu korunur
+      };
+      const m = modelKur(kaynak, alanlar);
+      state.alanlar = alanlar;
+      const no = m.bilgi.belgeNo || kimlik;
+      arsiv[no] = kayitKur(no, m, kaynak, alanlar);
+      arsiv[no].kimlik = kimlik;
+      kurulan.push(no);
+    } catch (e) { hatalar.push(`${kimlik}: ${e.message || e}`); }
+  }
+
+  if (kurulan.length) {
+    if (!Depo.yaz(arsiv)) arsivNot('Depo dolu, kayıt yapılamadı. Eski belgelerin ham verisini silmeyi deneyin.', true);
+    state.silAdayi = null;
+    belgeAc(kurulan[0]);
+    if (kurulan.length > 1) arsivNot(`${kurulan.length} belge yüklendi. Diğerlerine yukarıdan geçebilirsiniz.`, true);
+    else if (yenilenen.length) arsivNot(`${yenilenen[0]} için önceki veriler silinip yenisi yüklendi.`);
+  } else if (state.model) {
+    state.model = kurModel();
+    ciz();
+  }
+
+  tazeleEvrak();
+  gosterHatalar(hatalar);
+  ilerlemeKapat();
+}
+
+function gosterHatalar(hatalar){
+  document.querySelectorAll('.hata').forEach(n => n.remove());
+  if (!hatalar.length) return;
+  const d = document.createElement('div');
+  d.className = 'hata';
+  d.innerHTML = '<b>Okunamayan dosyalar</b><ul>' + hatalar.map(h => `<li>${h}</li>`).join('') + '</ul>';
+  document.getElementById('stage').prepend(d);
+}
+
+/* ---- model + ekran ---- */
+
+function kurModel(){ return modelKur(state.kaynak, state.alanlar); }
+
+function modelKur(kaynak, alanlar){
+  const tevRows = kaynak.tev.veri;
+  const git = (kaynak.git && kaynak.git.veri) || [];
+  const gih = (kaynak.gih && kaynak.gih.veri) || [];
+  const sarf = (kaynak.gs && kaynak.gs.veri) || {};
+  const oit = (kaynak.oit && kaynak.oit.veri) || [];
+  const oih = (kaynak.oih && kaynak.oih.veri) || [];
+
+  const ulkeler = UlkeDepo.oku();
+  const ithalat = buildIthalatListesi(git, oit);
+  const ihr = (gih.length && Object.keys(sarf).length)
+    ? buildIhracatListesi(gih, sarf, tevRows, oih, ulkeler)
+    : { rows: [], eksikSatirKodlari: [] };
+  const tev = buildTevTablosu(tevRows);
+  const kontrol = (ithalat.length || ihr.rows.length) ? buildKontrol(ithalat, ihr.rows, oit) : [];
+
+  const bilgi = {
+    firmaAdi: alanlar.firmaAdi || '',
+    belgeTarihNo: alanlar.belgeTarihNo || '',
+    vergiNo: alanlar.vergiNo || '',
+    belgeNo: (tevRows[0] || {}).BELGENO || '',
+    sureSonu: alanlar.sureSonu ? new Date(alanlar.sureSonu + 'T00:00:00Z') : null
+  };
+
+  const ucuncuUlke = tevRows.filter(r => !(r.TEVSIZ === 1 || r.TEVSIZ === '1') && (r.UCUNCU === 1 || r.UCUNCU === '1')).length;
+  const belgeSayisi = new Set(tevRows.map(r => r.BELGENO)).size;
+  const tevsizAtlanan = tevRows.filter(r => r.TEVSIZ === 1 || r.TEVSIZ === '1').length;
+  // TEV tablosuna girmiş ama TEV ödemesi görünmeyen satırlar.
+  // TEV hesaplaması bölümündeki üç alan tek tek işaretlenir.
+  tev.forEach(r => {
+    const no = String(r.makbuzNo || '').trim();
+    r.eksikTev = !(r.odenenTev > 0);
+    r.eksikMakbuzTarihi = !r.makbuzTarihi;
+    r.eksikMakbuzNo = !no || /TEVS[İI]Z/i.test(no.toLocaleUpperCase('tr-TR'));
+    r.tevsizSupheli = r.eksikTev || r.eksikMakbuzTarihi || r.eksikMakbuzNo;
+  });
+
+  return { bilgi, ithalat, ihracat: ihr.rows, eksikSatirKodlari: ihr.eksikSatirKodlari,
+           tev, kontrol, ucuncuUlke, belgeSayisi, tevsizAtlanan, hamYok: false,
+           ulkeler, kaynakDosyalar: Object.keys(kaynak) };
+}
+
+function tevHesapla(r){
+  const bk = r.ithMiktar ? r.deger / r.ithMiktar : 0;
+  const usd = r.tevTabiMiktar * bk * r.ithalVO / 100;
+  const anapara = usd * r.ihracKur;
+  return { bk, usd, anapara, odenen: r.odenenTev || 0, fark: (r.odenenTev || 0) - anapara };
+}
+
+function ciz(){
+  const m = state.model;
+  const stage = document.getElementById('stage');
+  const t = m.tev;
+  m.denge = buildBeyannameDengesi(t, m.ihracat);
+  m.denge.forEach((d, i) => { d.sira = i; });
+  const bozuk = m.denge.filter(d => d.durum !== 'esit');
+  const duzeltilen = t.filter(r => r.duzeltildi).length;
+  const topFireli = t.reduce((s, r) => s + r.fireliMiktar, 0);
+  const topTabi = t.reduce((s, r) => s + r.tevTabiMiktar, 0);
+  const topOdenen = t.reduce((s, r) => s + (r.odenenTev || 0), 0);
+  const topAnapara = t.reduce((s, r) => s + tevHesapla(r).anapara, 0);
+  const fark = topOdenen - topAnapara;
+  const farkSinifi = Math.abs(fark) < 1 ? 'fark-ok' : 'fark-uyari';
+
+  const uyarilar = [];
+  if (m.eksikSatirKodlari.length)
+    uyarilar.push(`Sarfiyat tablosunda karşılığı bulunamayan ihracat satır kodları: ${m.eksikSatirKodlari.join(', ')}. Bu kalemler ihracat listesine oransız yazıldı.`);
+  const tevsizSatirlar = t.filter(r => r.tevsizSupheli);
+  if (tevsizSatirlar.length)
+    uyarilar.push(`TEV tablosunda ${tevsizSatirlar.length} satırda ödenen TEV, makbuz tarihi veya makbuz no boş ya da TEVSİZ. TEV’siz beyanname tabloya girmiş olabilir: ${tevsizSatirlar.slice(0, 6).map(r => r.gbNo).join(', ')}${tevsizSatirlar.length > 6 ? ' …' : ''}. Eksik alanlar tabloda TEV? rozetiyle işaretli.`);
+  const tabiFarki = t.filter(r => Math.abs(r.fireliMiktar - r.tevTabiMiktar) > 0.01);
+  if (tabiFarki.length)
+    uyarilar.push(`${tabiFarki.length} satırda fireli miktar ile TEV’e tabi miktar birbirini tutmuyor. Tablodaki son sütundan kontrol edin.`);
+  if (m.ucuncuUlke) uyarilar.push(`${m.ucuncuUlke} satır üçüncü ülke ihracatı olarak işaretli. Mevzuat bunlar için ayrı liste isteyebilir; tabloda diğerleriyle birlikte duruyorlar.`);
+  if (m.belgeSayisi > 1) uyarilar.push(`TEV raporunda ${m.belgeSayisi} farklı belge no var. Tablo hepsini birlikte içeriyor.`);
+  if (m.hamYok) uyarilar.push('Bu belgenin ham Excel verileri silinmiş. Tablo kayıtlı sonuçlardan açıldı; indirebilir ve TEV’e tabi miktarları düzeltebilirsiniz, ama listeler yeniden hesaplanamaz. Yeniden hesaplamak için dosyaları tekrar yükleyin.');
+  if (!m.hamYok && !state.kaynak.oit) uyarilar.push('Öngörülen ithalat yüklenmedi. İthalat listesindeki madde adları beyannameden alındı; belgedeki yazımla birebir aynı olmayabilir.');
+  if (!m.hamYok && !state.kaynak.oih) uyarilar.push('Öngörülen ihracat yüklenmedi. İhracat listesindeki madde adları beyannameden alındı; belgedeki yazımla birebir aynı olmayabilir.');
+  const adsiz = new Set();
+  m.ithalat.forEach(r => { if (r.kap === r.beyannameKap && state.kaynak.oit) adsiz.add(r.satirKodu); });
+  m.ihracat.forEach(r => { if (r.kap === r.beyannameKap && state.kaynak.oih) adsiz.add(r.ihrSatir); });
+  if (adsiz.size) uyarilar.push(`Öngörülen listelerde karşılığı bulunamayan satır kodları: ${Array.from(adsiz).join(', ')}. Bu kalemlerin madde adı beyannameden alındı.`);
+  if (!m.hamYok && !m.ithalat.length) uyarilar.push('Gerçekleşen ithalat yüklenmediği için ithalat listeleri boş bırakıldı.');
+  if (!m.hamYok && !m.ihracat.length) uyarilar.push('Gerçekleşen ihracat ve sarfiyat birlikte yüklenmediği için ihracat listesi oluşturulmadı.');
+
+  stage.innerHTML = `
+    <div class="ozet">
+      <div class="kutu"><div class="k">TEV’li satır</div><div class="v">${t.length}</div></div>
+      <div class="kutu"><div class="k">Fireli miktar</div><div class="v">${TR.fmtNum(topFireli)} <small>kg</small></div></div>
+      <div class="kutu"><div class="k">TEV’e tabi miktar</div><div class="v">${TR.fmtNum(topTabi)} <small>kg</small></div></div>
+      <div class="kutu vurgu"><div class="k">Ödenmesi gereken</div><div class="v">${TR.fmtNum(topAnapara)} <small>TL</small></div></div>
+      <div class="kutu"><div class="k">Ödenen TEV</div><div class="v">${TR.fmtNum(topOdenen)} <small>TL</small></div></div>
+      <div class="kutu ${farkSinifi}"><div class="k">Fark</div><div class="v">${TR.fmtNum(fark)} <small>TL</small></div></div>
+      <div class="kutu ${bozuk.length ? 'fark-uyari' : 'fark-ok'}"><div class="k">Beyanname dengesi</div>
+        <div class="v">${bozuk.length ? bozuk.length + ' sorunlu' : 'tamam'}</div></div>
+    </div>
+
+    ${bozuk.length ? dengeUyarisi(bozuk) : ''}
+    ${uyarilar.length ? `<div class="uyari"><b>Bakılması gerekenler</b><ul>${uyarilar.map(u => `<li>${u}</li>`).join('')}</ul></div>` : ''}
+
+    <div class="indir-cubuk">
+      <button class="birincil" id="indir">Çalışma kitabını indir</button>
+      ${duzeltilen ? `<button class="ikincil" id="geriAl">${duzeltilen} düzeltmeyi geri al</button>` : ''}
+      <span class="not" id="indirNot">${duzeltilen ? duzeltilen + ' satırda TEV’e tabi miktarı elle değiştirdiniz.' : ''}</span>
+      <span class="ayrac"></span>
+      <button class="ikincil" id="sifirla">Yeni belge</button>
+    </div>
+
+    <div class="sekmeler" role="tablist">
+      <button class="sekme" role="tab" data-p="tev">TEV tablosu<span class="sayi">${t.length}</span></button>
+      <button class="sekme" role="tab" data-p="dng">Beyanname dengesi<span class="sayi ${bozuk.length ? 'uyari' : ''}">${bozuk.length || '✓'}</span></button>
+      <button class="sekme" role="tab" data-p="ihr">İhracat listesi<span class="sayi">${m.ihracat.length}</span></button>
+      <button class="sekme" role="tab" data-p="ith">İthalat listesi<span class="sayi">${m.ithalat.length}</span></button>
+      <button class="sekme" role="tab" data-p="knt">Kontrol<span class="sayi">${m.kontrol.length}</span></button>
+      <button class="sekme" role="tab" data-p="ulk">Ülkeler</button>
+    </div>
+    <div id="panel" role="tabpanel"></div>
+  `;
+
+  document.getElementById('indir').addEventListener('click', indir);
+  document.getElementById('sifirla').addEventListener('click', () => yeniBelge(true));
+  const geri = document.getElementById('geriAl');
+  if (geri) geri.addEventListener('click', () => {
+    state.model.tev.forEach(r => {
+      if (r.tevTabiKaynak !== undefined) { r.tevTabiMiktar = r.tevTabiKaynak; r.duzeltildi = false; }
+    });
+    ciz();
+  });
+  stage.querySelectorAll('.sekme').forEach(b => b.addEventListener('click', () => {
+    state.aktifPanel = b.dataset.p;
+    stage.querySelectorAll('.sekme').forEach(x => x.setAttribute('aria-selected', String(x === b)));
+    panelCiz(b.dataset.p);
+  }));
+  const panel = document.getElementById('panel');
+  panel.addEventListener('change', e => {
+    if (!e.target.classList.contains('s-giris')) return;
+    tevTabiDegistir(+e.target.dataset.i, e.target.value);
+  });
+  panel.addEventListener('click', e => {
+    const b = e.target.closest('[data-git]');
+    if (!b) return;
+    state.aktifPanel = 'tev';
+    ciz();
+    const sat = document.querySelector(`#panel input.s-giris[data-i="${b.dataset.git}"]`);
+    if (sat) { sat.scrollIntoView({ block: 'center' }); sat.focus(); sat.select(); }
+  });
+  const aktif = stage.querySelector(`.sekme[data-p="${state.aktifPanel}"]`) || stage.querySelector('.sekme');
+  stage.querySelectorAll('.sekme').forEach(x => x.setAttribute('aria-selected', String(x === aktif)));
+  panelCiz(aktif.dataset.p);
+
+  state.sonBelge = m.bilgi.belgeNo || state.sonBelge;
+  belgeKaydet();
+}
+
+function tevTabiDegistir(i, ham){
+  const r = state.model.tev[i];
+  if (!r) return;
+  if (r.tevTabiKaynak === undefined) r.tevTabiKaynak = r.tevTabiMiktar;
+  const v = TR.num(ham);
+  r.tevTabiMiktar = TR.round(v, 4);
+  r.duzeltildi = Math.abs(r.tevTabiMiktar - r.tevTabiKaynak) > 1e-6;
+  ciz();
+}
+
+/* Fazlalığın hangi TEV satırından düşüleceğini seçtiren panel */
+function dusPaneli(d){
+  const secenekler = d.satirlar.map(i => {
+    const r = state.model.tev[i];
+    const yeni = TR.round(r.tevTabiMiktar - d.fark, 4);
+    const olmaz = yeni < 0;
+    return `<button class="dus-secenek" data-dusuygula="${d.sira}" data-satir="${i}" ${olmaz ? 'disabled' : ''}
+              title="${olmaz ? 'Bu satırda yeterli miktar yok' : 'Bu satırdan düş'}">
+              <span class="no">${i + 1}</span>
+              <span class="bilgi"><b>${esc(r.gbNo)}</b> · ${esc(r.satirKodu)}</span>
+              <span class="deger mono">${TR.fmtNum(r.tevTabiMiktar)} → ${TR.fmtNum(yeni)}</span>
+            </button>`;
+  }).join('');
+  return `<div class="dus-panel">
+    <b>${TR.fmtNum(d.fark)} kg fazlalık hangi TEV satırından düşülsün?</b>
+    <div class="dus-secenekler">${secenekler}</div>
+    <button class="ikincil kucuk" data-dus="">Vazgeç</button>
+  </div>`;
+}
+
+function farkiDus(dengeSira, satirIndeksi){
+  const d = (state.model.denge || []).find(x => x.sira === dengeSira);
+  const r = state.model.tev[satirIndeksi];
+  if (!d || !r) return;
+  if (r.tevTabiKaynak === undefined) r.tevTabiKaynak = r.tevTabiMiktar;
+  r.tevTabiMiktar = TR.round(r.tevTabiMiktar - d.fark, 4);
+  r.duzeltildi = Math.abs(r.tevTabiMiktar - r.tevTabiKaynak) > 1e-6;
+  state.dusAdayi = null;
+  ciz();
+}
+
+function dengeUyarisi(bozuk){
+  const fazla = bozuk.filter(d => d.durum === 'fazla');
+  const eksik = bozuk.filter(d => d.durum === 'eksik');
+  const agir = eksik.length > 0;
+  const satir = d => `${d.gbNo} (${d.satirKodu}) · beyanname ${TR.fmtNum(d.beyannameMiktar)} · TEV’e tabi ${TR.fmtNum(d.tevTabiToplam)} · fark ${d.fark > 0 ? '+' : ''}${TR.fmtNum(d.fark)}`
+    + (d.ucuncuSatirSayisi ? ` — bu satır kodunda ${TR.fmtNum(d.ucuncuMiktar)} kg üçüncü ülke ihracatı var (${d.ucuncuUlkeler.join(', ')})` : '');
+  const ucuncuVar = bozuk.filter(d => d.ucuncuSatirSayisi);
+  const fazlaSatir = d => `<li>${satir(d)}
+      <button class="ikincil kucuk dus" data-dus="${d.sira}">${TR.fmtNum(d.fark)} kg düş</button>
+      ${state.dusAdayi === String(d.sira) ? dusPaneli(d) : ''}</li>`;
+  return `<div class="uyari ${agir ? 'agir' : ''}">
+    <b>Beyanname miktarı ile TEV’e tabi miktar tutmuyor</b>
+    <p style="margin:4px 0 6px">Bir ithalat beyannamesine dayanan TEV satırlarının TEV’e tabi miktar toplamı, o beyannamenin miktarına eşit olmalıdır. Aşağıdaki beyannamelerde eşitlik bozuk. Düzeltmeyi TEV tablosu sekmesinde ilgili satırın <em>TEV’e tabi</em> hücresine yazarak yapabilirsiniz; hesap kendiliğinden yenilenir.</p>
+    ${eksik.length ? `<div style="margin-bottom:6px"><b style="display:inline">Eksik:</b> TEV’e tabi miktar beyanname miktarının altında kalıyor.<ul>${eksik.map(d => `<li>${satir(d)}</li>`).join('')}</ul>
+      <div style="margin-top:5px">Olası sebepler:<ol style="margin:3px 0 0 18px">${EKSIK_SEBEPLER.map(x => `<li>${x}</li>`).join('')}</ol></div></div>` : ''}
+    ${fazla.length ? `<div><b style="display:inline">Fazla:</b> TEV’e tabi miktar beyanname miktarını aşıyor, yani beyannamede olduğundan çok hammaddeye TEV hesaplanmış görünüyor. Fazlalığı hangi satırdan düşeceğinizi seçebilirsiniz.<ul class="fazla-liste">${fazla.map(fazlaSatir).join('')}</ul></div>` : ''}
+    ${ucuncuVar.length
+      ? `<p style="margin:8px 0 0"><b style="display:inline">Üçüncü ülke durumu var.</b> Dengesi bozuk beyannamelerin ${ucuncuVar.length} tanesinde, aynı ithalat satır kodundan beslenen üçüncü ülke ihracatı bulunuyor: ${ucuncuVar.map(d => d.ucuncuUlkeler.join(', ') + ' (' + TR.fmtNum(d.ucuncuMiktar) + ' kg)').join('; ')}. Üçüncü ülkeye yapılan ihracat için TEV doğmaz; farkın kaynağı bu olabilir. Kontrol sekmesindeki beş kalemi karşılaştırın.</p>`
+      : `<p style="margin:8px 0 0">Dengesi bozuk beyannamelerin beslendiği ithalat satır kodlarında üçüncü ülke ihracatı görünmüyor; fark başka bir sebepten kaynaklanıyor.</p>`}
+  </div>`;
+}
+
+function panelCiz(hangi){
+  const m = state.model;
+  const p = document.getElementById('panel');
+  const bos = mesaj => `<div class="tablo-kutu" style="padding:20px;border-top:1px solid var(--rule)">${mesaj}</div>`;
+
+  if (hangi === 'tev') {
+    if (!m.tev.length) { p.innerHTML = bos('TEV’li satır bulunamadı.'); return; }
+    const t = tanimTev(m.tev);
+    p.innerHTML = tabloCiz('tev', t);
+    tabloBagla('tev', t);
+  } else if (hangi === 'ihr') {
+    if (!m.ihracat.length) { p.innerHTML = bos('İhracat listesi için gerçekleşen ihracat ve sarfiyat dosyaları gerekiyor.'); return; }
+    const t = tanimIhracat(m.ihracat);
+    p.innerHTML = tabloCiz('ihr', t);
+    tabloBagla('ihr', t);
+  } else if (hangi === 'ith') {
+    if (!m.ithalat.length) { p.innerHTML = bos('İthalat listesi için gerçekleşen ithalat dosyası gerekiyor.'); return; }
+    const t = tanimIthalat(m.ithalat);
+    p.innerHTML = tabloCiz('ith', t);
+    tabloBagla('ith', t);
+  } else if (hangi === 'dng') p.innerHTML = dengeCiz(m.denge);
+  else if (hangi === 'ulk') { p.innerHTML = ulkelerCiz(); ulkelerBagla(); }
+  else p.innerHTML = kontrolCiz(m.kontrol);
+}
+
+const esc = s => String(s == null ? '' : s).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+const say = (v, d = 2) => `<td class="say">${TR.fmtNum(v, d)}</td>`;
+
+/* ---- Ortak tablo çizici: yapışkan başlık + sütun filtreleri ---- */
+
+function tabloCiz(kimlik, tanim){
+  const f = (state.filtreler[kimlik] = state.filtreler[kimlik] || []);
+  const g = tanim.gruplar;
+  const b = tanim.basliklar;
+  const grupSatiri = g ? `<tr class="gruplar">${g.map(x => `<th class="${x.sinif}" colspan="${x.span}">${esc(x.ad)}</th>`).join('')}</tr>` : '';
+  const baslikSatiri = `<tr class="basliklar">${b.map(x => `<th class="${x.sinif}">${esc(x.ad)}</th>`).join('')}</tr>`;
+  const filtreSatiri = `<tr class="filtreler">${b.map((x, i) =>
+    `<th class="${x.sinif}"><input type="text" data-f="${i}" value="${esc(f[i] || '')}"
+       placeholder="süz" aria-label="${esc(x.ad)} sütununu süz"></th>`).join('')}</tr>`;
+  return `<div class="tablo-ust">
+      <span class="tablo-bilgi" data-bilgi></span>
+      <button class="ikincil kucuk" data-filtretemizle>Süzgeçleri temizle</button>
+    </div>
+    <div class="tablo-kutu" data-tablo="${kimlik}">
+      <table class="veri">
+        <thead>${grupSatiri}${baslikSatiri}${filtreSatiri}</thead>
+        <tbody></tbody><tfoot></tfoot>
+      </table>
+    </div>
+    <div class="secim-cubugu" data-secim aria-live="polite"></div>`;
+}
+
+function tabloDoldur(kimlik, tanim){
+  const kutu = document.querySelector(`[data-tablo="${kimlik}"]`);
+  if (!kutu) return;
+  const f = state.filtreler[kimlik] || [];
+  const hepsi = tanim.satirlar.map((r, i) => ({ r, i, h: tanim.hucreler(r, i) }));
+  const suzuk = hepsi.filter(x => x.h.every((c, j) =>
+    !f[j] || String(c.t == null ? '' : c.t).toLocaleLowerCase('tr-TR').includes(f[j].toLocaleLowerCase('tr-TR'))));
+
+  kutu.querySelector('tbody').innerHTML = suzuk.map(x =>
+    `<tr>${x.h.map(c => (c.n == null || isNaN(c.n)) ? c.h
+       : c.h.replace('<td', `<td data-n="${c.n}"`)).join('')}</tr>`).join('');
+
+  const tf = kutu.querySelector('tfoot');
+  if (tanim.toplam) {
+    const hucreler = [];
+    let atla = tanim.toplam.etiketSpan;
+    hucreler.push(`<td colspan="${atla}">Toplam</td>`);
+    for (let j = atla; j < tanim.basliklar.length; j++) {
+      if (tanim.toplam.sutunlar.includes(j)) {
+        const t = suzuk.reduce((s, x) => s + (x.h[j].n || 0), 0);
+        hucreler.push(`<td class="say">${TR.fmtNum(t)}</td>`);
+      } else hucreler.push('<td></td>');
+    }
+    tf.innerHTML = `<tr>${hucreler.join('')}</tr>`;
+  } else tf.innerHTML = '';
+
+  const bilgi = document.querySelector('[data-bilgi]');
+  if (bilgi) bilgi.textContent = suzuk.length === hepsi.length
+    ? `${hepsi.length} satır`
+    : `${hepsi.length} satırın ${suzuk.length} tanesi gösteriliyor`;
+  if (secim && secim.kutu !== kutu) secim = null;
+  if (secim) { secim.a = secim.b = null; secim.ek.clear(); }
+  secimYaz(kutu, 0, []);
+  yapiskanAyarla(kutu);
+}
+
+/* ---- Hücre seçimi: Excel'deki gibi sürükle-seç ve toplam göster ---- */
+
+let secim = null;   // {kutu, a:{r,c}, b:{r,c}, ek:Set, cekiyor}
+
+function hucreSayisi(td){
+  if (td.dataset.n !== undefined) { const v = Number(td.dataset.n); return isNaN(v) ? null : v; }
+  const t = (td.textContent || '').trim().replace(/\s/g, '');
+  if (!t || !/^-?[\d.]+(,\d+)?$/.test(t)) return null;
+  const v = TR.num(t);
+  return isNaN(v) ? null : v;
+}
+
+function secimKonum(td){
+  const tr = td.parentElement;
+  return { r: tr.rowIndex - tr.parentElement.parentElement.tHead.rows.length, c: td.cellIndex };
+}
+
+function secimKumesi(){
+  const k = new Set();
+  if (!secim) return k;
+  if (secim.a && secim.b) {
+    const r1 = Math.min(secim.a.r, secim.b.r), r2 = Math.max(secim.a.r, secim.b.r);
+    const c1 = Math.min(secim.a.c, secim.b.c), c2 = Math.max(secim.a.c, secim.b.c);
+    for (let r = r1; r <= r2; r++) for (let c = c1; c <= c2; c++) k.add(r + ':' + c);
+  }
+  secim.ek.forEach(x => k.add(x));
+  return k;
+}
+
+function secimUygula(){
+  if (!secim) return;
+  const govde = secim.kutu.querySelector('tbody');
+  const kume = secimKumesi();
+  const degerler = [];
+  let hucre = 0;
+  Array.from(govde.rows).forEach((tr, r) => Array.from(tr.cells).forEach((td, c) => {
+    const secili = kume.has(r + ':' + c);
+    td.classList.toggle('secili', secili);
+    if (secili) {
+      hucre++;
+      const v = hucreSayisi(td);
+      if (v !== null) degerler.push(v);
+    }
+  }));
+  secimYaz(secim.kutu, hucre, degerler);
+}
+
+function secimYaz(kutu, hucre, degerler){
+  const cubuk = kutu.parentElement.querySelector('[data-secim]');
+  if (!cubuk) return;
+  if (!hucre) {
+    cubuk.innerHTML = '<span class="ipucu">Hücrelerin üzerinde sürükleyerek seçin; toplam ve ortalama burada görünür. Ctrl ile tek tek ekleyebilir, Ctrl+C ile kopyalayabilirsiniz.</span>';
+    return;
+  }
+  const n = degerler.length;
+  const toplam = degerler.reduce((a, b) => a + b, 0);
+  const parca = [`<b>${hucre}</b> hücre`];
+  if (n) {
+    parca.push(`<b>${n}</b> sayısal`);
+    parca.push(`Toplam <b class="mono">${TR.fmtNum(toplam)}</b>`);
+    parca.push(`Ortalama <b class="mono">${TR.fmtNum(toplam / n)}</b>`);
+    parca.push(`En küçük <span class="mono">${TR.fmtNum(Math.min(...degerler))}</span>`);
+    parca.push(`En büyük <span class="mono">${TR.fmtNum(Math.max(...degerler))}</span>`);
+  }
+  cubuk.innerHTML = parca.join('<span class="ayrac">·</span>');
+}
+
+function secimMetni(){
+  if (!secim) return '';
+  const kume = secimKumesi();
+  const govde = secim.kutu.querySelector('tbody');
+  const satirlar = [];
+  Array.from(govde.rows).forEach((tr, r) => {
+    const hucreler = Array.from(tr.cells)
+      .map((td, c) => kume.has(r + ':' + c) ? (td.querySelector('input') ? td.querySelector('input').value : td.textContent.trim()) : null)
+      .filter(x => x !== null);
+    if (hucreler.length) satirlar.push(hucreler.join('\t'));
+  });
+  return satirlar.join('\n');
+}
+
+function secimBagla(kutu){
+  const govde = kutu.querySelector('tbody');
+  govde.addEventListener('mousedown', e => {
+    const td = e.target.closest('td');
+    if (!td || e.target.closest('input')) return;
+    const k = secimKonum(td);
+    if (e.shiftKey && secim && secim.kutu === kutu && secim.a) { secim.b = k; }
+    else if (e.ctrlKey || e.metaKey) {
+      if (!secim || secim.kutu !== kutu) secim = { kutu, a: null, b: null, ek: new Set(), cekiyor: false };
+      const anahtar = k.r + ':' + k.c;
+      secim.ek.has(anahtar) ? secim.ek.delete(anahtar) : secim.ek.add(anahtar);
+    } else {
+      secim = { kutu, a: k, b: k, ek: new Set(), cekiyor: true };
+    }
+    e.preventDefault();
+    secimUygula();
+  });
+  govde.addEventListener('mouseover', e => {
+    if (!secim || !secim.cekiyor || secim.kutu !== kutu) return;
+    const td = e.target.closest('td');
+    if (!td) return;
+    secim.b = secimKonum(td);
+    secimUygula();
+  });
+  secimYaz(kutu, 0, []);
+}
+
+/* Yapışkan başlık satırlarının üst konumunu ölçerek ayarla — sabit değer
+   yazı boyu veya sarma değiştiğinde kayıyordu. */
+function yapiskanAyarla(kutu){
+  const thead = kutu.querySelector('thead');
+  if (!thead) return;
+  let ust = 0;
+  Array.from(thead.rows).forEach(tr => {
+    Array.from(tr.cells).forEach(th => { th.style.top = ust + 'px'; });
+    ust += tr.getBoundingClientRect().height;
+  });
+}
+
+function tabloBagla(kimlik, tanim){
+  const panel = document.getElementById('panel');
+  panel.querySelectorAll('[data-f]').forEach(inp => {
+    inp.addEventListener('input', () => {
+      state.filtreler[kimlik][+inp.dataset.f] = inp.value;
+      tabloDoldur(kimlik, tanim);
+    });
+  });
+  const temizle = panel.querySelector('[data-filtretemizle]');
+  if (temizle) temizle.addEventListener('click', () => {
+    state.filtreler[kimlik] = [];
+    panelCiz(state.aktifPanel);
+  });
+  const kutu = panel.querySelector(`[data-tablo="${kimlik}"]`);
+  if (kutu) secimBagla(kutu);
+  tabloDoldur(kimlik, tanim);
+}
+
+const say2 = v => ({ h: `<td class="say">${TR.fmtNum(v)}</td>`, t: TR.fmtNum(v), n: v || 0 });
+const metinH = (v, sinif) => ({ h: `<td${sinif ? ` class="${sinif}"` : ''}>${esc(v)}</td>`, t: v == null ? '' : String(v) });
+
+/* TEV hesaplaması bölümündeki eksik alanı TEV? rozetiyle işaretler */
+function supheliH(html, metin, sayi, supheli, ipucu){
+  if (!supheli) return { h: html, t: metin == null ? '' : String(metin), n: sayi };
+  const isaretli = html
+    .replace('<td', `<td title="${esc(ipucu)}"`)
+    .replace(/class="([^"]*)"/, 'class="$1 supheli"')
+    .replace('</td>', '<span class="rozetcik">TEV?</span></td>');
+  const sinifli = /class="/.test(html) ? isaretli : isaretli.replace('<td', '<td class="supheli"');
+  return { h: sinifli, t: (metin == null ? '' : String(metin)) + ' TEV?', n: sayi };
+}
+
+/* ---- TEV tablosu ---- */
+function tanimTev(rows){
+  const gruplar = [
+    { ad: 'İhracat', span: 6, sinif: 'g-ihracat' },
+    { ad: 'Üçüncü ülkeden ithalat', span: 8, sinif: 'g-ithalat' },
+    { ad: 'TEV hesaplaması', span: 6, sinif: 'g-hesap' },
+    { ad: 'Ödenmesi gereken TEV', span: 4, sinif: 'g-odeme' }
+  ];
+  const adlar = ['Gümrük', 'GB no', 'GB tarih', 'Satır kodu', 'Miktar', 'Fireli miktar',
+    'Gümrük', 'GB no', 'GB tarih', 'Satır kodu', 'Miktar', 'Değer', 'B.K.', 'V.O.',
+    'TEV’e tabi', 'Ödenecek TEV ($)', 'İhraç kuru', 'Ödenen TEV (TL)', 'Makbuz tarihi', 'Makbuz no',
+    'Anapara (TL)', 'Fark (TL)', 'Tarih farkı', 'Fireli − tabi'];
+  const basliklar = adlar.map((ad, i) => ({
+    ad, sinif: i < 6 ? 'g-ihracat' : i < 14 ? 'g-ithalat' : i < 20 ? 'g-hesap' : 'g-odeme'
+  }));
+  return {
+    gruplar, basliklar, satirlar: rows,
+    toplam: { etiketSpan: 4, sutunlar: [4, 5, 14, 15, 17, 20, 21] },
+    hucreler(r, i){
+      const h = tevHesapla(r);
+      const gun = r.makbuzTarihi && r.gbTarih ? Math.round((r.makbuzTarihi - r.gbTarih) / 86400000) : '';
+      const sapma = r.fireliMiktar - r.tevTabiMiktar;
+      return [
+        metinH(TR.kisaGumruk(r.gumruk)),
+        metinH(r.gbNo, 'kod'),
+        metinH(TR.fmtDate(r.gbTarih)), metinH(r.satirKodu, 'kod'),
+        say2(r.miktar), say2(r.fireliMiktar),
+        metinH(TR.kisaGumruk(r.ithGumruk)), metinH(r.ithGbNo, 'kod'),
+        metinH(TR.fmtDate(r.ithGbTarih)), metinH(r.ithSatirKodu, 'kod'),
+        say2(r.ithMiktar), say2(r.deger),
+        { h: `<td class="say hesap">${TR.fmtNum(h.bk, 4)}</td>`, t: TR.fmtNum(h.bk, 4), n: h.bk },
+        { h: `<td class="say">${TR.fmtNum(r.ithalVO)}</td>`, t: TR.fmtNum(r.ithalVO), n: r.ithalVO },
+        { h: `<td class="say duzelt ${r.duzeltildi ? 'duzeltildi' : ''}">
+             <input class="s-giris" type="text" inputmode="decimal" data-i="${i}"
+               value="${TR.fmtNum(r.tevTabiMiktar)}"
+               title="${r.duzeltildi ? 'Kaynak değer: ' + TR.fmtNum(r.tevTabiKaynak) : 'Rapordan geldi'}"
+               aria-label="TEV’e tabi miktar, satır ${i + 1}"></td>`,
+          t: TR.fmtNum(r.tevTabiMiktar), n: r.tevTabiMiktar },
+        { h: `<td class="say hesap">${TR.fmtNum(h.usd)}</td>`, t: TR.fmtNum(h.usd), n: h.usd },
+        { h: `<td class="say">${TR.fmtNum(r.ihracKur, 4)}</td>`, t: TR.fmtNum(r.ihracKur, 4), n: r.ihracKur },
+        supheliH(`<td class="say">${TR.fmtNum(r.odenenTev)}</td>`, TR.fmtNum(r.odenenTev), r.odenenTev || 0,
+                 r.eksikTev, 'Ödenen TEV tutarı yok'),
+        supheliH(`<td>${esc(TR.fmtDate(r.makbuzTarihi))}</td>`, TR.fmtDate(r.makbuzTarihi), null,
+                 r.eksikMakbuzTarihi, 'Makbuz tarihi yok'),
+        supheliH(`<td class="kod">${esc(r.makbuzNo)}</td>`, r.makbuzNo, null,
+                 r.eksikMakbuzNo, 'Makbuz no yok veya TEVSİZ yazıyor'),
+        { h: `<td class="say hesap">${TR.fmtNum(h.anapara)}</td>`, t: TR.fmtNum(h.anapara), n: h.anapara },
+        { h: `<td class="say hesap" style="color:${Math.abs(h.fark) < 1 ? 'inherit' : 'var(--alarm)'}">${TR.fmtNum(h.fark)}</td>`,
+          t: TR.fmtNum(h.fark), n: h.fark },
+        { h: `<td class="say">${gun}</td>`, t: String(gun) },
+        { h: `<td class="say" style="color:${Math.abs(sapma) < 0.01 ? 'inherit' : 'var(--alarm)'}">${TR.fmtNum(sapma)}</td>`,
+          t: TR.fmtNum(sapma), n: sapma }
+      ];
+    }
+  };
+}
+
+/* ---- İhracat listesi ---- */
+function tanimIhracat(rows){
+  const adlar = ['TEV’li / TEV’siz', 'Ülke sınıfı', 'Gümrük', 'GB no', 'GB tarih', 'Kalem',
+    'İhracat satır', 'İthalat satır', 'GTİP', 'Madde adı', 'Miktar (kg)', 'Katsayı',
+    'Fireli miktar', 'Gideceği ülke'];
+  return {
+    gruplar: null,
+    basliklar: adlar.map(ad => ({ ad, sinif: 'g-ihracat' })),
+    satirlar: rows,
+    toplam: { etiketSpan: 10, sutunlar: [10, 12] },
+    hucreler(r){
+      return [
+        { h: `<td class="kod" style="color:${r.tevli === 'TEVSİZ' ? 'var(--ink-3)' : 'var(--ihracat)'}">${esc(r.tevli)}</td>`, t: r.tevli },
+        { h: `<td class="${r.ulkeSinifi === 'ÜÇÜNCÜ' ? 'ucuncu' : ''}">${esc(r.ulkeSinifi || '')}</td>`, t: r.ulkeSinifi || '' },
+        metinH(TR.kisaGumruk(r.gumruk)), metinH(r.gbNo, 'kod'), metinH(TR.fmtDate(r.tarih)),
+        { h: `<td class="say">${esc(r.kalem)}</td>`, t: String(r.kalem) },
+        metinH(r.ihrSatir, 'kod'), metinH(r.ithSatir, 'kod'), metinH(r.gtip, 'kod'),
+        metinH(r.kap, 'uzun'),
+        say2(r.miktarKg),
+        { h: `<td class="say">${TR.fmtNum(r.oran, 4)}</td>`, t: TR.fmtNum(r.oran, 4), n: r.oran },
+        say2(r.fireliMiktar),
+        metinH(r.varis)
+      ];
+    }
+  };
+}
+
+/* ---- İthalat listesi ---- */
+function tanimIthalat(rows){
+  const adlar = ['Gümrük', 'GB no', 'GB tarih', 'Kalem', 'Satır kodu', 'GTİP', 'Madde',
+    'İst. miktar', 'İst. kıymet ($)', 'Rejim', 'Menşe', 'Çıkış', 'Miktar (kg)', 'Vergi oranı'];
+  return {
+    gruplar: null,
+    basliklar: adlar.map(ad => ({ ad, sinif: 'g-ithalat' })),
+    satirlar: rows,
+    toplam: { etiketSpan: 7, sutunlar: [7, 8, 12] },
+    hucreler(r){
+      return [
+        metinH(TR.kisaGumruk(r.gumruk)), metinH(r.gbNo, 'kod'), metinH(TR.fmtDate(r.tarih)),
+        { h: `<td class="say">${esc(r.kalem)}</td>`, t: String(r.kalem) },
+        metinH(r.satirKodu, 'kod'), metinH(r.gtip, 'kod'), metinH(r.kap, 'uzun'),
+        say2(r.istMiktar), say2(r.istKiymet),
+        metinH(r.rejim, 'kod'), metinH(r.mensei), metinH(r.cikis),
+        say2(r.miktarKg),
+        { h: `<td class="say" style="color:${r.vergiOrani > 0 ? 'var(--ithalat)' : 'var(--ink-3)'}">${TR.fmtNum(r.vergiOrani)}</td>`,
+          t: TR.fmtNum(r.vergiOrani), n: r.vergiOrani }
+      ];
+    }
+  };
+}
+
+function dengeCiz(denge){
+  if (!denge || !denge.length) return '<div class="tablo-kutu" style="padding:20px;border-top:1px solid var(--rule)">TEV’li satır yok.</div>';
+  const etiket = { esit: 'dengede', fazla: 'fazla', eksik: 'eksik' };
+  return '<div class="denge-liste">' + denge.map(d => `
+    <div class="denge-kart ${d.durum}">
+      <div class="ust">
+        <h4 class="mono">${esc(d.gbNo)}</h4>
+        <span class="rozet">${etiket[d.durum]}</span>
+      </div>
+      <div class="ad">${esc(TR.kisaGumruk(d.gumruk))} · ${TR.fmtDate(d.gbTarih)} · <span class="mono">${esc(d.satirKodu)}</span><br>${esc(d.maddeAdi)}</div>
+      <dl>
+        <dt>Beyanname miktarı</dt><dd>${TR.fmtNum(d.beyannameMiktar)}</dd>
+        <dt>TEV’e tabi miktar toplamı</dt><dd>${TR.fmtNum(d.tevTabiToplam)}</dd>
+        <dt class="fark">Fark</dt><dd class="fark">${d.fark > 0 ? '+' : ''}${TR.fmtNum(d.fark)}</dd>
+      </dl>
+      <dl style="margin-top:9px">
+        <dt>Bu satır kodunda üçüncü ülke ihracatı</dt>
+        <dd>${d.ucuncuSatirSayisi ? TR.fmtNum(d.ucuncuMiktar) : 'yok'}</dd>
+      </dl>
+      ${d.ucuncuSatirSayisi ? `<p class="ucuncu-not">Üçüncü ülke: ${esc(d.ucuncuUlkeler.join(', '))}. Bu ihracat için TEV doğmaz.</p>` : ''}
+      <div class="satirlar">Bu beyannameye dayanan TEV satırları:
+        ${d.satirlar.map(i => `<button class="ikincil" style="padding:1px 6px;font-size:11px;margin:2px 2px 0 0" data-git="${i}">${i + 1}</button>`).join('')}
+      </div>
+      ${d.durum === 'eksik' ? `<div class="sebepler"><b>TEV’e tabi miktar beyannamenin altında. Olası sebepler:</b>
+        <ol>${EKSIK_SEBEPLER.map(x => `<li>${x}</li>`).join('')}</ol></div>` : ''}
+      ${d.durum === 'fazla' ? `<div class="sebepler"><b>TEV’e tabi miktar beyannameyi aşıyor.</b>
+        Beyannamede ithal edilenden fazla hammadde üzerinden TEV hesaplanmış görünüyor.
+        <div style="margin-top:8px"><button class="ikincil kucuk dus" data-dus="${d.sira}">${TR.fmtNum(d.fark)} kg düş</button></div>
+        ${state.dusAdayi === String(d.sira) ? dusPaneli(d) : ''}</div>` : ''}
+    </div>`).join('') + '</div>';
+}
+
+function ulkelerCiz(){
+  const u = state.model.ulkeler || UlkeDepo.oku();
+  const varsayilanMi = JSON.stringify(u) === JSON.stringify(ULKELER_VARSAYILAN);
+  const alan = (ad, baslik, liste, ipucu) => `
+    <div class="ulke-sutun">
+      <label for="u-${ad}">${baslik} <span>${liste.length}</span></label>
+      <textarea id="u-${ad}" data-ulke="${ad}" rows="16" spellcheck="false">${esc(liste.join('\n'))}</textarea>
+      <p class="ipucu">${ipucu}</p>
+    </div>`;
+  return `<div class="ulke-panel">
+    <div class="ulke-ust">
+      <div>
+        <b>Çalışma kitabının ÜLKELER sayfası</b>
+        <p>Her satır bir kayıt. Değişiklikler kendiliğinden saklanır ve bundan sonraki bütün belgelerde kullanılır.</p>
+      </div>
+      <div class="ulke-dugmeler">
+        <button class="ikincil" id="ulkeGuncelle">Güncelle</button>
+        ${varsayilanMi ? '' : '<span class="ulke-rozet">elle değiştirilmiş</span>'}
+      </div>
+    </div>
+    <div class="ulke-izgara">
+      ${alan('ab', 'AB ülkeleri', u.ab || [], 'Sayfada iki sütuna bölünür.')}
+      ${alan('efta', 'EFTA ülkeleri', u.efta || [], '')}
+      ${alan('sta', 'STA ülkeleri', u.sta || [], 'Yürürlüğe giriş tarihini parantez içinde yazın.')}
+      ${alan('disarida', 'Yürürlükte olmayanlar', u.disarida || [], 'Sayfanın altına not olarak düşülür.')}
+    </div>
+    <div class="ulke-kaynak">
+      <b>Yerleşik liste ${ULKELER_SURUM} tarihli.</b>
+      Bu dosya kendi başına internete bakamaz; "Güncelle" yerleşik listeyi geri yükler.
+      Değişiklik olduğunda listeyi aşağıdaki kaynaklardan kontrol edip elle düzenleyebilirsiniz.
+      <ul>${ULKELER_KAYNAK.map(([ad, url]) => `<li><a href="${url}" target="_blank" rel="noopener">${ad}</a></li>`).join('')}</ul>
+    </div>
+  </div>`;
+}
+
+function ulkelerBagla(){
+  const panel = document.getElementById('panel');
+  panel.querySelectorAll('[data-ulke]').forEach(t => {
+    t.addEventListener('change', () => {
+      const u = UlkeDepo.oku();
+      u[t.dataset.ulke] = t.value.split('\n').map(x => x.trim()).filter(Boolean);
+      if (!UlkeDepo.yaz(u)) { arsivNot('Ülke listesi kaydedilemedi.', true); return; }
+      state.model.ulkeler = u;
+      panelCiz('ulk');
+      arsivNot('Ülke listesi güncellendi.');
+    });
+  });
+  const g = document.getElementById('ulkeGuncelle');
+  if (g) g.addEventListener('click', () => {
+    UlkeDepo.sifirla();
+    state.model.ulkeler = UlkeDepo.oku();
+    panelCiz('ulk');
+    arsivNot(`Yerleşik liste (${ULKELER_SURUM}) geri yüklendi.`);
+  });
+}
+
+function kontrolCiz(kontrol){
+  if (!kontrol.length) return '<div class="tablo-kutu" style="padding:20px;border-top:1px solid var(--rule)">Kontrol için ithalat ve ihracat dosyaları gerekiyor.</div>';
+  return '<div class="kontrol-liste">' + kontrol.map(k => {
+    const iyi = Math.abs(k.sarfiyatFarki) < 1;
+    return `<div class="kontrol-kart">
+      <h4 class="mono">${esc(k.kod)}</h4>
+      <div class="ad">${esc(k.ad)}</div>
+      <dl>
+        <dt>İTHALAT LİSTESİ - VERGİLİ MİKTAR</dt><dd>${TR.fmtNum(k.ithalatVergili)}</dd>
+        <dt>İHRACAT LİSTESİ - VERGİLİ FİRELİ MİKTAR</dt><dd>${TR.fmtNum(k.ihracatVergiliFireli)}</dd>
+        <dt>ÜÇÜNCÜ ÜLKE - İHRACAT LİSTESİ - VERGİLİ FİRELİ MİKTAR</dt><dd>${TR.fmtNum(k.ucuncuUlke)}</dd>
+        <dt class="ara">Toplam (vergili + üçüncü ülke)</dt>
+        <dd class="ara">${TR.fmtNum(k.ihracatVergiliFireli + k.ucuncuUlke)}</dd>
+        <dt>İTHALAT LİSTESİ - VERGİSİZ MİKTAR</dt><dd>${TR.fmtNum(k.ithalatVergisiz)}</dd>
+        <dt>İHRACAT LİSTESİ - VERGİSİZ FİRELİ MİKTAR</dt><dd>${TR.fmtNum(k.ihracatVergisizFireli)}</dd>
+        <dt class="toplam">SAĞLAMA-SARFİYAT DEĞERİ</dt>
+        <dd class="toplam ${iyi ? 'iyi' : 'kotu'}">${TR.fmtNum(k.sarfiyatFarki)}</dd>
+      </dl>
+      <p class="formul">Vergisiz ithalat + vergili ithalat − vergili fireli ihracat − üçüncü ülke − vergisiz fireli ihracat</p>
+    </div>`;
+  }).join('') + '</div>';
+}
+
+/* ---- indirme ---- */
+
+async function indir(){
+  const not = document.getElementById('indirNot');
+  const btn = document.getElementById('indir');
+  btn.disabled = true; not.textContent = 'Kitap hazırlanıyor…';
+  try {
+    const blob = await buildWorkbook(state.model);
+    const belge = (state.model.bilgi.belgeNo || 'belge').replace(/[^\w\-]+/g, '_');
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `${belge}_tev_tablosu.xlsx`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+    not.textContent = 'İndirildi.';
+  } catch (e) {
+    not.textContent = 'Kitap oluşturulamadı: ' + (e.message || e);
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+/* ---- bağla ---- */
+
+kurDropAciklama();
+tazeleEvrak();
+const BOS_HTML = document.getElementById('stage').innerHTML;
+arsivCiz();
+if (!Depo.acik) arsivNot('Tarayıcı deposuna erişilemiyor; kayıtlar yalnızca bu oturumda tutulur.', true);
+
+// stage sayfa boyunca aynı öğe kaldığı için dinleyici bir kez bağlanır
+document.addEventListener('mouseup', () => { if (secim) secim.cekiyor = false; });
+
+document.addEventListener('keydown', e => {
+  if (!(e.ctrlKey || e.metaKey) || e.key.toLowerCase() !== 'c') return;
+  if (e.target.matches('input, textarea')) return;
+  const metin = secimMetni();
+  if (!metin) return;
+  navigator.clipboard && navigator.clipboard.writeText(metin);
+  e.preventDefault();
+});
+
+document.getElementById('stage').addEventListener('click', e => {
+  const ac = e.target.closest('[data-dus]');
+  if (ac) {
+    const v = ac.dataset.dus;
+    state.dusAdayi = (v === '' || state.dusAdayi === v) ? null : v;
+    ciz();
+    return;
+  }
+  const uy = e.target.closest('[data-dusuygula]');
+  if (uy) farkiDus(+uy.dataset.dusuygula, +uy.dataset.satir);
+});
+
+document.getElementById('arsivListesi').addEventListener('click', e => {
+  const ac = e.target.closest('[data-ac]');
+  if (ac) { state.silAdayi = null; belgeAc(ac.dataset.ac); return; }
+  const sil = e.target.closest('[data-sil]');
+  if (sil) { state.silAdayi = sil.dataset.sil; arsivCiz(); return; }
+  const ham = e.target.closest('[data-hamsil]');
+  if (ham) { state.silAdayi = null; hamVerileriSil(ham.dataset.hamsil); return; }
+  const tam = e.target.closest('[data-tamsil]');
+  if (tam) { state.silAdayi = null; tamamenSil(tam.dataset.tamsil); return; }
+  if (e.target.closest('[data-vazgec]')) { state.silAdayi = null; arsivCiz(); }
+});
+
+const drop = document.getElementById('drop');
+const giris = document.getElementById('dosyaGirisi');
+drop.addEventListener('click', () => giris.click());
+drop.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); giris.click(); } });
+giris.addEventListener('change', e => dosyalariAl(Array.from(e.target.files)));
+['dragenter', 'dragover'].forEach(t => drop.addEventListener(t, e => { e.preventDefault(); drop.classList.add('hot'); }));
+['dragleave', 'drop'].forEach(t => drop.addEventListener(t, e => { e.preventDefault(); drop.classList.remove('hot'); }));
+drop.addEventListener('drop', e => dosyalariAl(Array.from(e.dataTransfer.files)));
+
+</script>
+</body>
+</html>

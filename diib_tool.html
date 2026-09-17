@@ -1,0 +1,1217 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mal Tanımı Toplu Düzenleyici — DİİB XML</title>
+<style>
+  :root{
+    --ink:#0f1a24;
+    --ink-soft:#33475b;
+    --muted:#6a7e91;
+    --paper:#e9edf1;
+    --panel:#ffffff;
+    --line:#ccd6df;
+    --line-soft:#e4eaef;
+    --accent:#0b6b62;
+    --accent-dark:#075049;
+    --accent-soft:#e2f1ef;
+    --amber:#9a5b06;
+    --amber-soft:#fdf1de;
+    --amber-line:#e6c48a;
+    --red:#a32626;
+    --mono:ui-monospace,"SFMono-Regular",Menlo,Consolas,"Liberation Mono",monospace;
+    --sans:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+    --radius:3px;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:var(--sans);
+    font-size:14px;
+    line-height:1.45;
+    padding-bottom:76px;
+  }
+  .wrap{max-width:2400px;margin:0 auto;padding:0 20px}
+  .masthead .wrap{max-width:1480px}
+
+  /* ---------- başlık ---------- */
+  .masthead{
+    border-bottom:1px solid var(--line);
+    background:var(--ink);
+    color:#e7edf2;
+  }
+  .masthead .wrap{display:flex;align-items:baseline;gap:16px;flex-wrap:wrap;padding-top:14px;padding-bottom:14px}
+  .masthead h1{
+    font-family:var(--mono);
+    font-size:15px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;
+    margin:0;
+  }
+  .masthead p{margin:0;color:#8fa4b6;font-size:12.5px}
+
+  /* ---------- dosya yükleme ---------- */
+  .drop{
+    margin:20px 0;
+    background:var(--panel);
+    border:1px dashed var(--line);
+    border-radius:var(--radius);
+    padding:26px 20px;
+    text-align:center;
+  }
+  .drop.drag{border-color:var(--accent);background:var(--accent-soft)}
+  .drop h2{margin:0 0 6px;font-size:15px}
+  .drop p{margin:0 0 14px;color:var(--muted);font-size:12.5px}
+  .drop.compact{padding:12px 16px;display:flex;align-items:center;justify-content:space-between;gap:14px;text-align:left}
+  .drop.compact h2,.drop.compact p{display:none}
+
+  /* ---------- belge künyesi ---------- */
+  .stubs{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+  .stub{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-left:3px solid var(--ink);
+    border-radius:var(--radius);
+    padding:10px 14px;min-width:220px;
+  }
+  .stub .no{font-family:var(--mono);font-size:14px;font-weight:600;letter-spacing:.02em}
+  .stub .fields{display:flex;gap:14px;flex-wrap:wrap;margin-top:6px}
+  .stub .f{font-size:11px;color:var(--muted)}
+  .stub .f b{display:block;font-family:var(--mono);font-size:12px;color:var(--ink-soft);font-weight:600}
+  .stub .rm{float:right;margin-left:10px}
+
+  /* ---------- yerleşim ---------- */
+  .layout{display:grid;grid-template-columns:392px minmax(0,1fr);gap:18px;align-items:start;margin-bottom:18px}
+  @media (max-width:1080px){.layout{grid-template-columns:1fr}}
+
+  .panel{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    margin-bottom:16px;
+  }
+  .panel > h3{
+    margin:0;padding:9px 14px;
+    border-bottom:1px solid var(--line-soft);
+    font-family:var(--mono);font-size:11px;font-weight:600;
+    letter-spacing:.14em;text-transform:uppercase;color:var(--ink-soft);
+    display:flex;justify-content:space-between;align-items:center;gap:8px;
+  }
+  .panel .body{padding:14px}
+  .side{position:sticky;top:14px}
+  @media (max-width:1080px){.side{position:static}}
+
+  /* ---------- form ---------- */
+  label.lbl{
+    display:block;font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;
+    text-transform:uppercase;color:var(--muted);margin:0 0 4px;
+  }
+  input[type=text],select,textarea{
+    width:100%;font-family:var(--sans);font-size:13.5px;color:var(--ink);
+    background:#fff;border:1px solid var(--line);border-radius:var(--radius);
+    padding:7px 9px;
+  }
+  input[type=text]:focus,select:focus,textarea:focus,button:focus-visible{
+    outline:2px solid var(--accent);outline-offset:1px;border-color:var(--accent);
+  }
+  .field{margin-bottom:10px}
+  .opts{display:flex;flex-wrap:wrap;gap:10px 16px;margin:10px 0}
+  .opts label{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--ink-soft);cursor:pointer}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+
+  button{
+    font-family:var(--sans);font-size:13px;cursor:pointer;
+    border:1px solid var(--line);background:#fff;color:var(--ink);
+    border-radius:var(--radius);padding:7px 12px;
+  }
+  button:hover:not(:disabled){border-color:var(--ink-soft)}
+  button:disabled{opacity:.45;cursor:not-allowed}
+  button.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+  button.primary:hover:not(:disabled){background:var(--accent-dark);border-color:var(--accent-dark)}
+  button.ghost{background:transparent}
+  button.tiny{font-size:11.5px;padding:3px 7px}
+  button.danger{color:var(--red);border-color:#e0bcbc}
+  .btnrow{display:flex;gap:8px;flex-wrap:wrap}
+
+  /* ---------- önizleme (imza öğesi) ---------- */
+  .preview{border-top:1px solid var(--line-soft);max-height:340px;overflow:auto}
+  .pv-head{
+    padding:8px 14px;font-family:var(--mono);font-size:11px;letter-spacing:.08em;
+    color:var(--ink-soft);background:#f6f8fa;border-bottom:1px solid var(--line-soft);
+    position:sticky;top:0;
+  }
+  .pv-item{padding:9px 14px;border-bottom:1px solid var(--line-soft);font-size:12.5px}
+  .pv-item:last-child{border-bottom:none}
+  .pv-code{font-family:var(--mono);font-size:10.5px;color:var(--muted);letter-spacing:.04em}
+  .pv-old{color:var(--muted);margin-top:3px}
+  .pv-new{margin-top:2px}
+  .pv-old .hit{background:var(--amber-soft);color:var(--amber);text-decoration:line-through;padding:0 2px}
+  .pv-new .hit{background:var(--accent-soft);color:var(--accent-dark);font-weight:600;padding:0 2px;border-radius:2px}
+  .pv-arrow{color:var(--muted);font-family:var(--mono);margin-right:5px}
+  .empty{padding:16px 14px;color:var(--muted);font-size:12.5px}
+  .err{color:var(--red);font-size:12px;margin-top:6px}
+
+  /* ---------- tablo ---------- */
+  .toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:10px 14px;border-bottom:1px solid var(--line-soft)}
+  .toolbar input[type=text]{width:230px}
+  .toolbar select{width:auto}
+  .count{font-family:var(--mono);font-size:11.5px;color:var(--muted);margin-left:auto;letter-spacing:.04em}
+  .tablewrap{overflow-x:auto}
+  table{border-collapse:collapse;width:100%;min-width:0;table-layout:fixed}
+  th{
+    font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;
+    color:var(--muted);text-align:left;font-weight:600;
+    padding:8px 10px;border-bottom:1px solid var(--line);background:#f6f8fa;
+    position:sticky;top:0;z-index:2;
+  }
+  td{padding:7px 10px;border-bottom:1px solid var(--line-soft);vertical-align:top}
+  tr.changed td{background:var(--amber-soft)}
+  tr.changed td.c-mal{box-shadow:inset 3px 0 0 var(--amber-line)}
+  td.c-code,td.c-gtip,td.c-qty{font-family:var(--mono);font-size:11.5px;color:var(--ink-soft);white-space:nowrap}
+  td.c-qty{text-align:right}
+  .badge{
+    font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;
+    padding:2px 5px;border:1px solid var(--line);border-radius:2px;color:var(--ink-soft);background:#fff;
+  }
+  .badge.ith{border-color:#b9cfe0;color:#1d5a86;background:#eef5fa}
+  .badge.ihr{border-color:#c3d9c4;color:#2c6b34;background:#eff7f0}
+  td.c-mal{white-space:nowrap;overflow:hidden}
+  input.mal{
+    font-size:13px;line-height:1.35;
+    border-color:transparent;background:transparent;padding:5px 6px;
+    width:100%;
+  }
+  input.mal:hover{border-color:var(--line);background:#fff}
+  tr.changed input.mal{background:#fff;border-color:var(--amber-line)}
+  .was{font-size:11px;color:var(--amber);font-family:var(--mono);margin:2px 0 0 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  th.sortable{cursor:pointer;user-select:none}
+  th.sortable:hover{color:var(--ink)}
+  th .ind{display:inline-block;margin-left:5px;color:var(--accent);font-size:10px;visibility:hidden}
+  th.sorted{color:var(--ink)}
+  th.sorted .ind{visibility:visible}
+  td.c-act{white-space:nowrap;text-align:right}
+  td.c-len{font-family:var(--mono);text-align:right;white-space:nowrap;padding-top:10px}
+  td.c-len b{font-size:12.5px;font-weight:600;color:var(--ink-soft)}
+  td.c-len b.over{color:var(--red)}
+  td.c-len .len-old{display:block;font-size:10.5px;color:var(--amber);margin-top:2px}
+  .pv-len{font-family:var(--mono);font-size:10.5px;color:var(--muted);margin-left:6px}
+  .calc-title{font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:0 0 10px}
+  input.num{font-family:var(--mono);text-align:right}
+  .calcout{margin-top:4px}
+  .calc-row{border-top:1px solid var(--line-soft);padding:9px 0}
+  .calc-row:first-child{border-top:1px solid var(--line)}
+  .calc-head{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+  .calc-cell{font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:.06em}
+  .calc-name{font-size:12.5px;color:var(--ink-soft)}
+  .calc-value{font-family:var(--mono);font-size:15px;font-weight:600;color:var(--accent-dark);white-space:nowrap}
+  .calc-formula{font-family:var(--mono);font-size:11.5px;color:var(--ink);background:var(--accent-soft);
+    border-left:2px solid var(--accent);padding:3px 7px;margin-top:5px;border-radius:0 2px 2px 0;overflow-wrap:anywhere}
+  .calc-note{font-size:11.5px;color:var(--muted);margin-top:4px;overflow-wrap:anywhere}
+  .calc-row.bad .calc-value{color:var(--red)}
+
+  /* ---------- gruplar ---------- */
+  .grp{border-bottom:1px solid var(--line-soft);padding:12px 14px}
+  .grp:last-child{border-bottom:none}
+  .grp h4{margin:0 0 8px;font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+  .grp .opt{display:flex;gap:9px;align-items:flex-start;padding:5px 0;font-size:12.5px}
+  .grp .opt .meta{font-family:var(--mono);font-size:10.5px;color:var(--muted);display:block;margin-top:2px}
+  .grp .actions{margin-top:8px}
+  .slider{display:flex;align-items:center;gap:10px;font-size:12.5px;color:var(--ink-soft)}
+  .slider input[type=range]{flex:1;accent-color:var(--accent)}
+
+  .tabs{display:flex;gap:0;border-bottom:1px solid var(--line);margin-bottom:0}
+  .tab{
+    font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;
+    padding:9px 14px;border:none;background:transparent;color:var(--muted);border-bottom:2px solid transparent;
+  }
+  .tab.on{color:var(--ink);border-bottom-color:var(--accent);font-weight:600}
+
+  /* ---------- alt bar ---------- */
+  .actionbar{
+    position:fixed;left:0;right:0;bottom:0;z-index:40;
+    background:var(--ink);color:#e7edf2;border-top:1px solid #263646;
+  }
+  .actionbar .wrap{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding-top:12px;padding-bottom:12px}
+  .actionbar .stat{font-family:var(--mono);font-size:12px;letter-spacing:.05em}
+  .actionbar .stat b{color:#ffd08a}
+  .actionbar .sp{margin-left:auto}
+  .actionbar button{background:#1c2b3a;border-color:#33475b;color:#e7edf2}
+  .actionbar button:hover:not(:disabled){border-color:#6a8399}
+  .actionbar button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+  .actionbar button.primary:hover:not(:disabled){background:#0a7d72;border-color:#0a7d72}
+
+  .toast{
+    position:fixed;bottom:86px;left:50%;transform:translateX(-50%);
+    background:var(--ink);color:#fff;padding:9px 16px;border-radius:var(--radius);
+    font-size:13px;z-index:60;opacity:0;pointer-events:none;transition:opacity .18s ease;
+    box-shadow:0 6px 20px rgba(15,26,36,.25);
+  }
+  .toast.on{opacity:1}
+  .hint{font-size:11.5px;color:var(--muted);margin-top:8px}
+  .hidden{display:none !important}
+  @media (prefers-reduced-motion:reduce){*{transition:none !important;animation:none !important}}
+</style>
+<style id="malColStyle"></style>
+</head>
+<body>
+
+<header class="masthead">
+  <div class="wrap">
+    <h1>Mal Tanımı Toplu Düzenleyici</h1>
+    <p>DİİB / DİR XML dosyalarında ithalat ve ihracat listesi mal tanımlarını topluca değiştirir. Yalnızca <code>&lt;malAdi&gt;</code> alanları yazılır, dosyanın kalanı birebir korunur.</p>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <div id="drop" class="drop">
+    <h2>XML dosyalarını buraya bırakın</h2>
+    <p>Birden fazla belgeyi aynı anda açıp hepsinde tek seferde değişiklik yapabilirsiniz.</p>
+    <div class="btnrow" style="justify-content:center">
+      <button class="primary" id="pick">Dosya seç</button>
+      <span id="dropNote" class="hint hidden">Yeni dosya eklemek için sürükleyin ya da seçin.</span>
+    </div>
+    <input type="file" id="file" accept=".xml,text/xml" multiple style="display:none">
+  </div>
+
+  <div id="stubs" class="stubs"></div>
+
+  <div id="workspace" class="layout">
+
+    <aside class="side">
+      <div class="panel">
+        <div class="tabs">
+          <button class="tab on" data-tab="replace">Bul ve değiştir</button>
+          <button class="tab" data-tab="groups">Mükerrer tanımlar</button>
+          <button class="tab" data-tab="sarfiyat">Sarfiyat farkı</button>
+        </div>
+
+        <div id="tab-replace">
+          <div class="body">
+            <div class="field">
+              <label class="lbl" for="find">Aranan metin</label>
+              <input type="text" id="find" placeholder="örn. Fılament" autocomplete="off">
+            </div>
+            <div class="field">
+              <label class="lbl" for="repl">Yerine yazılacak</label>
+              <input type="text" id="repl" placeholder="örn. Filament" autocomplete="off">
+            </div>
+            <div class="opts">
+              <label><input type="checkbox" id="optCase"> Büyük/küçük harfe duyarlı</label>
+              <label><input type="checkbox" id="optWord"> Tam kelime</label>
+              <label><input type="checkbox" id="optRegex"> Regex</label>
+            </div>
+            <div class="field">
+              <label class="lbl" for="scope">Kapsam</label>
+              <select id="scope">
+                <option value="filtered">Listede görünen satırlar</option>
+                <option value="selected">Yalnızca seçili satırlar</option>
+                <option value="all">Tüm satırlar</option>
+              </select>
+            </div>
+            <div class="btnrow">
+              <button class="primary" id="apply" disabled>Değişikliği uygula</button>
+              <button class="ghost" id="clearFind">Temizle</button>
+            </div>
+            <div id="findErr" class="err hidden"></div>
+            <div class="hint">Regex açıkken $1, $2 ile yakalanan grupları kullanabilirsiniz.</div>
+          </div>
+
+          <h3>Hazır düzeltmeler</h3>
+          <div class="body">
+            <div class="btnrow">
+              <button class="tiny" data-fix="spaces">Fazla boşlukları tekle</button>
+              <button class="tiny" data-fix="trim">Baş/son boşluğu kırp</button>
+              <button class="tiny" data-fix="punct">Virgül öncesi boşluğu sil</button>
+              <button class="tiny" data-fix="paren">Parantez içi boşluğu düzelt</button>
+              <button class="tiny" data-fix="ascii">Türkçe karakterleri İngilizce yap</button>
+              <button class="tiny" data-fix="shrink" id="shrinkBtn">100 karakterin altına indir</button>
+            </div>
+            <div class="hint">Kapsam yukarıdaki seçime göre uygulanır. Kısaltma yalnızca sınırı aşan satırlara dokunur: önce soldan sağa boşlukları siler, hâlâ aşıyorsa parantez işaretlerini siler.</div>
+          </div>
+
+          <h3>Önizleme</h3>
+          <div id="preview" class="preview"></div>
+        </div>
+
+        <div id="tab-groups" class="hidden">
+          <div class="body">
+            <div class="slider">
+              <span>Benzerlik eşiği</span>
+              <input type="range" id="thr" min="70" max="100" value="90">
+              <b id="thrVal" style="font-family:var(--mono)">%90</b>
+            </div>
+            <div class="hint">Aynı sayısal değerlere (Ne, yüzde, dtex) sahip olup yalnızca yazımı farklı olan tanımlar eşleştirilir. Eşiği düşürdükçe daha uzak benzerlikler listelenir.</div>
+          </div>
+          <div id="groups" class="preview" style="max-height:none"></div>
+        </div>
+
+        <div id="tab-sarfiyat" class="hidden">
+          <div class="body">
+            <div class="calc-title">%100 olmayanlar</div>
+            <div class="row2">
+              <div class="field">
+                <label class="lbl" for="s1fark">Fark</label>
+                <input type="text" id="s1fark" class="num" value="36.747,38" autocomplete="off">
+              </div>
+              <div class="field">
+                <label class="lbl" for="s1karisim">Karışım oranı</label>
+                <input type="text" id="s1karisim" class="num" value="0,65" autocomplete="off">
+              </div>
+            </div>
+            <div class="row2">
+              <div class="field">
+                <label class="lbl" for="s1fire">Fire oranı</label>
+                <input type="text" id="s1fire" class="num" value="0,95" autocomplete="off">
+              </div>
+              <div class="field">
+                <label class="lbl" for="s1bol">Bölen</label>
+                <input type="text" id="s1bol" class="num" value="4" autocomplete="off">
+              </div>
+            </div>
+            <div class="field">
+              <label class="lbl" for="s1ekle">Eklenen sabit</label>
+              <input type="text" id="s1ekle" class="num" value="1.500" autocomplete="off">
+            </div>
+            <div id="calc1" class="calcout"></div>
+          </div>
+
+          <h3>%100 olanlar</h3>
+          <div class="body">
+            <div class="row2">
+              <div class="field">
+                <label class="lbl" for="s2fark">Fark</label>
+                <input type="text" id="s2fark" class="num" value="8.657,89" autocomplete="off">
+              </div>
+              <div class="field">
+                <label class="lbl" for="s2fire">Fire oranı</label>
+                <input type="text" id="s2fire" class="num" value="0,95" autocomplete="off">
+              </div>
+            </div>
+            <div id="calc2" class="calcout"></div>
+            <div class="btnrow" style="margin-top:12px">
+              <button class="tiny" id="calcCopy">Sonuçları kopyala</button>
+              <button class="tiny ghost" id="calcReset">Excel değerlerine dön</button>
+            </div>
+            <div class="hint">Oranlar ondalık yazılır: 0,65 = %65. Formüller yüklediğiniz Sarfiyat_Tablosu_Fark_Hesaplama.xlsx dosyasındaki hücrelerin birebir karşılığıdır.</div>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <main id="mainCol" class="hidden">
+      <div class="panel">
+        <div class="toolbar">
+          <input type="text" id="q" placeholder="Tanım veya satır kodunda ara" autocomplete="off">
+          <select id="listFilter">
+            <option value="all">İthalat + İhracat</option>
+            <option value="ithalat">Yalnızca ithalat</option>
+            <option value="ihracat">Yalnızca ihracat</option>
+          </select>
+          <select id="fileFilter"><option value="all">Tüm dosyalar</option></select>
+          <label style="display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--ink-soft)">
+            <input type="checkbox" id="onlyChanged"> Sadece değişenler
+          </label>
+          <label style="display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--ink-soft)">
+            Karakter sınırı
+            <input type="text" id="limit" inputmode="numeric" placeholder="—" style="width:62px;font-family:var(--mono);text-align:right">
+          </label>
+          <span class="count" id="count"></span>
+        </div>
+        <div class="tablewrap">
+          <table>
+            <thead>
+              <tr>
+                <th style="width:30px"><input type="checkbox" id="selAll" title="Görünenleri seç"></th>
+                <th style="width:64px" class="sortable" data-sort="list">Liste<span class="ind"></span></th>
+                <th style="width:124px" class="sortable" data-sort="satirKodu">Satır kodu<span class="ind"></span></th>
+                <th style="width:138px" class="sortable" data-sort="gtip">GTİP<span class="ind"></span></th>
+                <th style="width:96px" class="sortable" data-sort="miktar">Miktar<span class="ind"></span></th>
+                <th class="sortable" data-sort="mal">Mal tanımı<span class="ind"></span></th>
+                <th style="width:76px" class="sortable" data-sort="len">Karakter<span class="ind"></span></th>
+                <th style="width:64px"></th>
+              </tr>
+            </thead>
+            <tbody id="rows"></tbody>
+          </table>
+        </div>
+        <div id="tableEmpty" class="empty hidden">Bu filtreye uyan satır yok.</div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<div class="actionbar" id="actionbar" style="display:none">
+  <div class="wrap">
+    <span class="stat"><b id="chgCount">0</b> satır değişti</span>
+    <button id="undo" disabled>Son işlemi geri al</button>
+    <button id="resetAll" class="danger" style="color:#ffb4b4;border-color:#5a3030">Tümünü sıfırla</button>
+    <span class="sp"></span>
+    <button id="csv">Değişiklik dökümü (CSV)</button>
+    <div id="dlBtns" class="btnrow"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+"use strict";
+
+/* ============ yardımcılar ============ */
+const $ = s => document.querySelector(s);
+const WORD = /[0-9A-Za-zÇĞİÖŞÜçğıöşü]/;
+const TR_ASCII = {
+  "ç":"c","ğ":"g","ı":"i","İ":"I","ö":"o","ş":"s","ü":"u",
+  "Ç":"C","Ğ":"G","Ö":"O","Ş":"S","Ü":"U",
+  "â":"a","î":"i","û":"u","Â":"A","Î":"I","Û":"U"
+};
+const esc = s => String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+const escRe = s => s.replace(/[.*+?^${}()|[\]\\]/g,"\\$&");
+const decodeEnt = s => s.replace(/&lt;/g,"<").replace(/&gt;/g,">").replace(/&quot;/g,'"')
+                        .replace(/&apos;/g,"'").replace(/&#39;/g,"'").replace(/&amp;/g,"&");
+const encodeEnt = s => s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+
+function toast(msg){
+  const t = $("#toast"); t.textContent = msg; t.classList.add("on");
+  clearTimeout(t._t); t._t = setTimeout(()=>t.classList.remove("on"), 2200);
+}
+
+/* ============ durum ============ */
+const state = { files:[], ops:[], tab:"replace", sort:{key:null, dir:1} };
+
+const collator = new Intl.Collator("tr", {numeric:true, sensitivity:"base"});
+function sortValue(r, key){
+  switch(key){
+    case "list": return r.list === "ithalat" ? "İthalat" : "İhracat";
+    case "satirKodu": return r.satirKodu;
+    case "gtip": return r.gtip;
+    case "miktar": return parseFloat(String(r.miktar).replace(",",".")) || 0;
+    case "mal": return r.current;
+    case "len": return r.current.length;
+    default: return 0;
+  }
+}
+function sortRecs(list){
+  const k = state.sort.key;
+  if (!k) return list.slice().sort((a,b) => a.ord - b.ord);
+  const d = state.sort.dir;
+  return list.slice().sort((a,b) => {
+    const x = sortValue(a,k), y = sortValue(b,k);
+    let c;
+    if (typeof x === "number" && typeof y === "number") c = x - y;
+    else c = collator.compare(String(x), String(y));
+    return c !== 0 ? c * d : a.ord - b.ord;
+  });
+}
+
+/* ============ XML okuma ============ */
+function tagVal(block, tag){
+  const m = block.match(new RegExp("<"+tag+">([\\s\\S]*?)</"+tag+">"));
+  return m ? decodeEnt(m[1]).trim() : "";
+}
+
+function parseXml(raw, fileName, fileIdx){
+  const meta = {
+    fileName,
+    belgeNo: tagVal(raw,"belgeNo") || "(belge no yok)",
+    firma: tagVal(raw,"unvan"),
+    belgeTarih: tagVal(raw,"belgeTarih")
+  };
+  const recs = [];
+  const lists = [["ithalat","ithalatListesi"],["ihracat","ihracatListesi"]];
+  for (const [key, tag] of lists){
+    const open = raw.indexOf("<"+tag+">");
+    const close = raw.indexOf("</"+tag+">");
+    if (open === -1 || close === -1) continue;
+    const section = raw.slice(open, close);
+    const itemRe = /<item>[\s\S]*?<\/item>/g;
+    let m;
+    while ((m = itemRe.exec(section)) !== null){
+      const block = m[0];
+      const mal = block.match(/<malAdi>([\s\S]*?)<\/malAdi>/);
+      if (!mal) continue;
+      const inner = mal[1];
+      const start = open + m.index + mal.index + "<malAdi>".length;
+      const text = decodeEnt(inner).trim();
+      recs.push({
+        id: fileIdx + "#" + recs.length,
+        fileIdx, list:key,
+        satirKodu: tagVal(block,"satirKodu"),
+        gtip: tagVal(block,"gtip"),
+        miktar: tagVal(block,"miktar"),
+        birim: tagVal(block,"birim"),
+        start, end: start + inner.length,
+        original: text, current: text, selected:false
+      });
+    }
+  }
+  return { name:fileName, raw, meta, recs };
+}
+
+function rebuild(file){
+  const changed = file.recs.filter(r => r.current !== r.original).sort((a,b)=>b.start-a.start);
+  let out = file.raw;
+  for (const r of changed) out = out.slice(0,r.start) + encodeEnt(r.current) + out.slice(r.end);
+  return out;
+}
+
+/* ============ eşleştirme ============ */
+function findMatches(text, needle, o){
+  const out = [];
+  if (!needle) return out;
+  if (o.regex){
+    let re;
+    try { re = new RegExp(needle, "g" + (o.caseSensitive ? "" : "i")); } catch(e){ return null; }
+    let m, guard = 0;
+    while ((m = re.exec(text)) !== null){
+      if (m[0] === ""){ re.lastIndex++; if (++guard > 4000) break; continue; }
+      out.push({start:m.index, end:m.index+m[0].length, groups:m});
+      if (++guard > 4000) break;
+    }
+  } else if (o.caseSensitive){
+    let i = 0;
+    while ((i = text.indexOf(needle,i)) !== -1){ out.push({start:i,end:i+needle.length}); i += needle.length; }
+  } else {
+    const lo = text.toLocaleLowerCase("tr"), nd = needle.toLocaleLowerCase("tr");
+    if (lo.length === text.length){
+      let i = 0;
+      while ((i = lo.indexOf(nd,i)) !== -1){ out.push({start:i,end:i+nd.length}); i += nd.length; }
+    } else {
+      const re = new RegExp(escRe(needle),"gi"); let m;
+      while ((m = re.exec(text)) !== null) out.push({start:m.index,end:m.index+m[0].length});
+    }
+  }
+  if (o.wholeWord){
+    return out.filter(x => !WORD.test(x.start>0 ? text[x.start-1] : "") &&
+                           !WORD.test(x.end<text.length ? text[x.end] : ""));
+  }
+  return out;
+}
+
+function replaceIn(text, ms, repl, o){
+  let out = text;
+  for (let i = ms.length-1; i >= 0; i--){
+    const m = ms[i];
+    let r = repl;
+    if (o.regex && m.groups) r = repl.replace(/\$(\d)/g,(_,d)=> m.groups[+d]!==undefined ? m.groups[+d] : "");
+    out = out.slice(0,m.start) + r + out.slice(m.end);
+  }
+  return out;
+}
+
+/* ============ kayıt erişimi ============ */
+const allRecs = () => state.files.flatMap(f => f.recs);
+const recById = id => allRecs().find(r => r.id === id);
+const changedRecs = () => allRecs().filter(r => r.current !== r.original);
+
+function filteredRecs(){
+  const q = $("#q").value.trim().toLocaleLowerCase("tr");
+  const lf = $("#listFilter").value;
+  const ff = $("#fileFilter").value;
+  const oc = $("#onlyChanged").checked;
+  return sortRecs(allRecs().filter(r => {
+    if (lf !== "all" && r.list !== lf) return false;
+    if (ff !== "all" && String(r.fileIdx) !== ff) return false;
+    if (oc && r.current === r.original) return false;
+    if (q){
+      const hay = (r.current + " " + r.original + " " + r.satirKodu + " " + r.gtip).toLocaleLowerCase("tr");
+      if (!hay.includes(q)) return false;
+    }
+    return true;
+  }));
+}
+
+function scopeRecs(){
+  const s = $("#scope").value;
+  if (s === "all") return allRecs();
+  if (s === "selected") return allRecs().filter(r => r.selected);
+  return filteredRecs();
+}
+
+function opts(){
+  return { caseSensitive:$("#optCase").checked, wholeWord:$("#optWord").checked, regex:$("#optRegex").checked };
+}
+
+/* ============ işlem uygulama + geri alma ============ */
+function runOp(label, transform){
+  const targets = scopeRecs();
+  const before = [];
+  let n = 0;
+  for (const r of targets){
+    const next = transform(r.current, r);
+    if (next === null) return { error:true };
+    if (next !== r.current){ before.push({id:r.id, value:r.current}); r.current = next; n++; }
+  }
+  if (n) state.ops.push({label, before});
+  if (state.ops.length > 30) state.ops.shift();
+  renderAll();
+  return { n, label };
+}
+
+function undo(){
+  const op = state.ops.pop();
+  if (!op) return;
+  for (const b of op.before){ const r = recById(b.id); if (r) r.current = b.value; }
+  renderAll();
+  toast("Geri alındı: " + op.label);
+}
+
+/* ============ render ============ */
+function renderStubs(){
+  const box = $("#stubs");
+  box.innerHTML = state.files.map((f,i) => {
+    const ch = f.recs.filter(r=>r.current!==r.original).length;
+    const d = f.meta.belgeTarih;
+    const tar = /^\d{8}$/.test(d) ? d.slice(6,8)+"."+d.slice(4,6)+"."+d.slice(0,4) : (d||"—");
+    return `<div class="stub">
+      <button class="tiny ghost rm" data-rm="${i}" title="Dosyayı kapat">✕</button>
+      <span class="no">${esc(f.meta.belgeNo)}</span>
+      <div class="fields">
+        <span class="f">Kalem<b>${f.recs.length}</b></span>
+        <span class="f">Belge tarihi<b>${esc(tar)}</b></span>
+        <span class="f">Değişen<b>${ch}</b></span>
+        <span class="f">Dosya<b>${esc(f.name)}</b></span>
+      </div>
+    </div>`;
+  }).join("");
+  box.querySelectorAll("[data-rm]").forEach(b => b.onclick = () => {
+    state.files.splice(+b.dataset.rm,1);
+    state.files.forEach((f,i)=>{ f.recs.forEach((r,j)=>{ r.fileIdx=i; r.id=i+"#"+j; r.ord=i*100000+j; }); });
+    state.ops = [];
+    renderAll();
+  });
+}
+
+function renderFileFilter(){
+  const sel = $("#fileFilter");
+  const cur = sel.value;
+  sel.innerHTML = '<option value="all">Tüm dosyalar</option>' +
+    state.files.map((f,i)=>`<option value="${i}">${esc(f.meta.belgeNo)}</option>`).join("");
+  sel.value = [...sel.options].some(o=>o.value===cur) ? cur : "all";
+  sel.style.display = state.files.length > 1 ? "" : "none";
+}
+
+/* mal tanımı kolonunun genişliği: görünen en uzun metne göre, pencereyi aşmadan */
+let _ctx = null, _ctxTried = false;
+function measureText(text){
+  if (!_ctxTried){
+    _ctxTried = true;
+    try{
+      const c = document.createElement("canvas").getContext("2d");
+      if (c){ c.font = "13px " + getComputedStyle(document.body).fontFamily; _ctx = c; }
+    }catch(e){ _ctx = null; }
+  }
+  if (!_ctx) return (text || "").length * 6.9;
+  return _ctx.measureText(text).width;
+}
+const FIXED_COLS = 30 + 64 + 124 + 138 + 96 + 76 + 64 + 8*10; /* diğer kolonlar + hücre boşlukları */
+function sizeMalColumn(rows){
+  const wrap = document.querySelector(".tablewrap");
+  const avail = (wrap ? wrap.clientWidth : 900) - FIXED_COLS;
+  let need = 260;
+  for (const r of rows) need = Math.max(need, measureText(r.current) + 30);
+  const w = Math.max(200, Math.min(Math.ceil(need), Math.max(200, avail)));
+  document.querySelector("#malColStyle").textContent =
+    `td.c-mal,th.sortable[data-sort="mal"]{width:${w}px;max-width:${w}px}`;
+}
+
+function charLimit(){
+  const v = parseInt(($("#limit").value || "").replace(/\D/g,""), 10);
+  return v > 0 ? v : 0;
+}
+function overLimit(text){
+  const lim = charLimit();
+  return lim > 0 && text.length > lim;
+}
+
+/* sınırı aşan tanımı kısaltır: önce soldan sağa boşluk siler, yetmezse parantez siler */
+function shrinkTo(text, limit){
+  if (text.length <= limit) return text;
+  let t = text;
+  let i;
+  while (t.length > limit && (i = t.indexOf(" ")) !== -1) t = t.slice(0,i) + t.slice(i+1);
+  while (t.length > limit && (i = t.search(/[()]/)) !== -1) t = t.slice(0,i) + t.slice(i+1);
+  return t;
+}
+
+function renderSortHeaders(){
+  document.querySelectorAll("th.sortable").forEach(th => {
+    const on = th.dataset.sort === state.sort.key;
+    th.classList.toggle("sorted", on);
+    th.querySelector(".ind").textContent = on ? (state.sort.dir === 1 ? "▲" : "▼") : "";
+    th.title = on && state.sort.dir === -1 ? "Sıralamayı kaldır (belge sırası)" : "Sırala";
+  });
+}
+
+document.querySelectorAll("th.sortable").forEach(th => th.addEventListener("click", () => {
+  const k = th.dataset.sort;
+  if (state.sort.key !== k) state.sort = {key:k, dir:1};
+  else if (state.sort.dir === 1) state.sort.dir = -1;
+  else state.sort = {key:null, dir:1};
+  renderSortHeaders();
+  renderTable();
+}));
+
+function renderTable(){
+  const rows = filteredRecs();
+  const tb = $("#rows");
+  tb.innerHTML = rows.map(r => {
+    const ch = r.current !== r.original;
+    return `<tr class="${ch?"changed":""}" data-id="${r.id}">
+      <td><input type="checkbox" class="sel" ${r.selected?"checked":""}></td>
+      <td><span class="badge ${r.list==="ithalat"?"ith":"ihr"}">${r.list==="ithalat"?"İth":"İhr"}</span></td>
+      <td class="c-code">${esc(r.satirKodu)}</td>
+      <td class="c-gtip">${esc(r.gtip)}</td>
+      <td class="c-qty">${esc(r.miktar)} ${esc(r.birim)}</td>
+      <td class="c-mal">
+        <input type="text" class="mal" spellcheck="false" title="${esc(r.current)}" value="${esc(r.current)}">
+        ${ch ? `<div class="was">eski: ${esc(r.original)}</div>` : ""}
+      </td>
+      <td class="c-len">
+        <b class="len ${overLimit(r.current)?"over":""}">${r.current.length}</b>
+        ${ch ? `<span class="len-old">eski ${r.original.length}</span>` : ""}
+      </td>
+      <td class="c-act">${ch ? `<button class="tiny revert" title="Bu satırı eski haline döndür">↺ Geri</button>` : ""}</td>
+    </tr>`;
+  }).join("");
+
+  tb.querySelectorAll("input.mal").forEach(ta => {
+    ta.addEventListener("input", () => {
+      const cell = ta.closest("tr").querySelector(".len");
+      const v = ta.value.replace(/\s*\n\s*/g," ").trim();
+      cell.textContent = v.length;
+      cell.classList.toggle("over", overLimit(v));
+      ta.style.width = "";
+      if (measureText(ta.value) + 30 > ta.clientWidth) sizeMalColumn(filteredRecs().concat([{current:ta.value}]));
+    });
+    ta.addEventListener("change", () => {
+      const id = ta.closest("tr").dataset.id, r = recById(id);
+      const next = ta.value.replace(/\s*\n\s*/g," ").trim();
+      if (r && next !== r.current){
+        state.ops.push({label:"tekil düzenleme", before:[{id:r.id, value:r.current}]});
+        r.current = next; renderAll();
+      }
+    });
+  });
+  tb.querySelectorAll(".sel").forEach(cb => cb.onchange = () => {
+    const r = recById(cb.closest("tr").dataset.id); if (r) r.selected = cb.checked;
+    renderCount();
+  });
+  tb.querySelectorAll(".revert").forEach(b => b.onclick = () => {
+    const r = recById(b.closest("tr").dataset.id);
+    if (r){ state.ops.push({label:"satır geri alma", before:[{id:r.id,value:r.current}]}); r.current = r.original; renderAll(); }
+  });
+
+  $("#tableEmpty").classList.toggle("hidden", rows.length > 0);
+  sizeMalColumn(rows);
+  renderCount(rows);
+}
+
+function renderCount(rows){
+  rows = rows || filteredRecs();
+  const sel = allRecs().filter(r=>r.selected).length;
+  const lim = charLimit();
+  const over = lim ? rows.filter(r => r.current.length > lim).length : 0;
+  const lens = rows.map(r => r.current.length);
+  const maxLen = lens.length ? Math.max(...lens) : 0;
+  $("#count").textContent = `${rows.length} / ${allRecs().length} satır` +
+    (sel ? ` · ${sel} seçili` : "") +
+    (maxLen ? ` · en uzun ${maxLen} karakter` : "") +
+    (lim ? ` · ${over} satır sınırı aşıyor` : "");
+  $("#shrinkBtn").textContent = (lim || 100) + " karakterin altına indir";
+}
+
+function renderPreview(){
+  const box = $("#preview");
+  const needle = $("#find").value;
+  const repl = $("#repl").value;
+  const o = opts();
+  $("#findErr").classList.add("hidden");
+  if (!needle){
+    box.innerHTML = `<div class="empty">Aranan metni yazdığınızda etkilenecek satırlar burada listelenir.</div>`;
+    $("#apply").disabled = true;
+    return;
+  }
+  const targets = scopeRecs();
+  const hits = [];
+  let total = 0, bad = false;
+  for (const r of targets){
+    const ms = findMatches(r.current, needle, o);
+    if (ms === null){ bad = true; break; }
+    if (ms.length){ total += ms.length; hits.push({r, ms}); }
+  }
+  if (bad){
+    $("#findErr").textContent = "Geçersiz regex ifadesi.";
+    $("#findErr").classList.remove("hidden");
+    box.innerHTML = `<div class="empty">—</div>`;
+    $("#apply").disabled = true;
+    return;
+  }
+  $("#apply").disabled = hits.length === 0;
+  if (!hits.length){
+    box.innerHTML = `<div class="empty">Bu kapsamda eşleşme yok.</div>`;
+    return;
+  }
+  const shown = hits.slice(0,60);
+  box.innerHTML = `<div class="pv-head">${hits.length} satır · ${total} eşleşme${hits.length>60?" · ilk 60 satır gösteriliyor":""}</div>` +
+    shown.map(({r,ms}) => {
+      let oldHtml = "", last = 0;
+      for (const m of ms){
+        oldHtml += esc(r.current.slice(last,m.start)) + '<span class="hit">' + esc(r.current.slice(m.start,m.end)) + "</span>";
+        last = m.end;
+      }
+      oldHtml += esc(r.current.slice(last));
+      const nv = replaceIn(r.current, ms, repl, o);
+      let newHtml = "", cur = 0, shift = 0;
+      for (const m of ms){
+        const rl = (o.regex && m.groups) ? repl.replace(/\$(\d)/g,(_,d)=> m.groups[+d]!==undefined?m.groups[+d]:"").length : repl.length;
+        const s = m.start + shift, e = s + rl;
+        newHtml += esc(nv.slice(cur,s)) + (rl ? '<span class="hit">' + esc(nv.slice(s,e)) + "</span>" : "");
+        cur = e; shift += rl - (m.end - m.start);
+      }
+      newHtml += esc(nv.slice(cur));
+      return `<div class="pv-item">
+        <div class="pv-code">${esc(r.satirKodu)} · ${r.list==="ithalat"?"İthalat":"İhracat"}</div>
+        <div class="pv-old">${oldHtml}<span class="pv-len">${r.current.length} kr.</span></div>
+        <div class="pv-new"><span class="pv-arrow">→</span>${newHtml}<span class="pv-len">${nv.length} kr.</span></div>
+      </div>`;
+    }).join("");
+}
+
+/* ---- mükerrer / benzer gruplar ---- */
+const normTr = s => s.toLocaleLowerCase("tr").replace(/\s+/g," ").trim();
+const numKey = s => (s.match(/\d+(?:[.,]\d+)?/g) || []).slice().sort().join("|");
+const lettersOnly = s => normTr(s).replace(/[^a-zçğıöşü ]/g," ").replace(/\s+/g," ").trim();
+function trigrams(s){ const p = "  "+s+" "; const set = new Set(); for (let i=0;i<p.length-2;i++) set.add(p.slice(i,i+3)); return set; }
+function dice(a,b){
+  const A = trigrams(a), B = trigrams(b);
+  if (!A.size || !B.size) return 0;
+  let i = 0; for (const x of A) if (B.has(x)) i++;
+  return 2*i/(A.size+B.size);
+}
+
+function buildGroups(thr){
+  const recs = allRecs();
+  const exact = new Map();
+  for (const r of recs){
+    const k = normTr(r.current);
+    if (!exact.has(k)) exact.set(k,[]);
+    exact.get(k).push(r);
+  }
+  const groups = [];
+  const usedExact = new Set();
+  for (const [,arr] of exact){
+    if (arr.length > 1){ groups.push({kind:"exact", members:arr.map(r=>({r,sim:1}))}); arr.forEach(r=>usedExact.add(r.id)); }
+  }
+  const pool = recs.filter(r => !usedExact.has(r.id));
+  const taken = new Set();
+  for (let i=0;i<pool.length;i++){
+    if (taken.has(pool[i].id)) continue;
+    const base = pool[i];
+    const members = [{r:base, sim:1}];
+    for (let j=i+1;j<pool.length;j++){
+      const other = pool[j];
+      if (taken.has(other.id)) continue;
+      if (numKey(base.current) !== numKey(other.current)) continue;
+      const s = dice(lettersOnly(base.current), lettersOnly(other.current));
+      if (s >= thr){ members.push({r:other, sim:s}); taken.add(other.id); }
+    }
+    if (members.length > 1){ taken.add(base.id); groups.push({kind:"near", members}); }
+  }
+  return groups;
+}
+
+function renderGroups(){
+  const thr = +$("#thr").value / 100;
+  $("#thrVal").textContent = "%" + $("#thr").value;
+  const box = $("#groups");
+  const groups = buildGroups(thr);
+  if (!groups.length){
+    box.innerHTML = `<div class="empty">Bu eşikte mükerrer ya da yakın benzer tanım bulunamadı.</div>`;
+    return;
+  }
+  box.innerHTML = groups.map((g,gi) => {
+    const title = g.kind === "exact" ? `Birebir aynı tanım · ${g.members.length} satır` : `Yakın benzer · ${g.members.length} satır`;
+    const opts = g.members.map((m,mi) => `
+      <label class="opt">
+        <input type="radio" name="grp${gi}" value="${m.r.id}" ${mi===0?"checked":""}>
+        <span>${esc(m.r.current)}
+          <span class="meta">${esc(m.r.satirKodu)} · ${m.r.list==="ithalat"?"İthalat":"İhracat"} · benzerlik %${Math.round(m.sim*100)}</span>
+        </span>
+      </label>`).join("");
+    return `<div class="grp" data-g="${gi}">
+      <h4>${title}</h4>
+      ${opts}
+      <div class="actions"><button class="tiny primary" data-eq="${gi}">Gruptaki tümünü seçili tanıma eşitle</button></div>
+    </div>`;
+  }).join("");
+
+  box.querySelectorAll("[data-eq]").forEach(btn => btn.onclick = () => {
+    const gi = +btn.dataset.eq;
+    const g = groups[gi];
+    const picked = box.querySelector(`input[name="grp${gi}"]:checked`);
+    if (!picked) return;
+    const target = recById(picked.value);
+    if (!target) return;
+    const before = [];
+    let n = 0;
+    for (const m of g.members){
+      if (m.r.current !== target.current){ before.push({id:m.r.id, value:m.r.current}); m.r.current = target.current; n++; }
+    }
+    if (n){ state.ops.push({label:"grup eşitleme", before}); renderAll(); toast(n + " satır eşitlendi."); }
+    else toast("Grup zaten aynı tanıma sahip.");
+  });
+}
+
+function renderFooter(){
+  const ch = changedRecs().length;
+  $("#chgCount").textContent = ch;
+  $("#undo").disabled = state.ops.length === 0;
+  $("#resetAll").disabled = ch === 0;
+  $("#csv").disabled = ch === 0;
+  const box = $("#dlBtns");
+  box.innerHTML = state.files.map((f,i) => {
+    const n = f.recs.filter(r=>r.current!==r.original).length;
+    const label = state.files.length > 1 ? `${f.meta.belgeNo} indir` : "Düzenlenmiş XML'i indir";
+    return `<button class="primary" data-dl="${i}">${esc(label)}${n?` (${n})`:""}</button>`;
+  }).join("");
+  box.querySelectorAll("[data-dl]").forEach(b => b.onclick = () => download(+b.dataset.dl));
+  $("#actionbar").style.display = state.files.length ? "" : "none";
+}
+
+function renderAll(){
+  renderStubs(); renderFileFilter(); renderSortHeaders(); renderTable(); renderFooter();
+  if (state.tab === "replace") renderPreview();
+  else if (state.tab === "groups") renderGroups();
+}
+
+/* ============ indirme ============ */
+function saveBlob(name, text, type){
+  const blob = new Blob([text], {type:type || "application/xml;charset=utf-8"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = name; document.body.appendChild(a); a.click();
+  setTimeout(()=>{ try{ URL.revokeObjectURL(url); }catch(e){} a.remove(); }, 500);
+}
+
+function download(i){
+  const f = state.files[i];
+  const out = rebuild(f);
+  const base = f.name.replace(/\.xml$/i,"");
+  saveBlob(base + "_duzenlenmis.xml", out);
+  toast("XML indirildi.");
+}
+
+function downloadCsv(){
+  const rows = [["Dosya","Belge No","Liste","Satır Kodu","GTİP","Eski Tanım","Eski Karakter","Yeni Tanım","Yeni Karakter"]];
+  for (const f of state.files)
+    for (const r of f.recs)
+      if (r.current !== r.original)
+        rows.push([f.name, f.meta.belgeNo, r.list==="ithalat"?"İthalat":"İhracat", r.satirKodu, r.gtip,
+                   r.original, r.original.length, r.current, r.current.length]);
+  const csv = rows.map(r => r.map(c => '"' + String(c).replace(/"/g,'""') + '"').join(";")).join("\r\n");
+  saveBlob("mal_tanimi_degisiklikleri.csv", "\ufeff" + csv, "text/csv;charset=utf-8");
+  toast("Değişiklik dökümü indirildi.");
+}
+
+/* ============ dosya yükleme ============ */
+function loadFiles(list){
+  const files = [...list].filter(f => /\.xml$/i.test(f.name) || f.type.includes("xml"));
+  if (!files.length){ toast("XML dosyası seçilmedi."); return; }
+  let pending = files.length;
+  files.forEach(file => {
+    const fr = new FileReader();
+    fr.onload = () => {
+      const raw = String(fr.result);
+      const idx = state.files.length;
+      const parsed = parseXml(raw, file.name, idx);
+      if (!parsed.recs.length){ toast(file.name + ": mal tanımı bulunamadı."); }
+      else state.files.push(parsed);
+      if (--pending === 0) finishLoad();
+    };
+    fr.onerror = () => { toast(file.name + " okunamadı."); if (--pending === 0) finishLoad(); };
+    fr.readAsText(file, "UTF-8");
+  });
+}
+
+function finishLoad(){
+  state.files.forEach((f,i)=>{ f.recs.forEach((r,j)=>{ r.fileIdx=i; r.id=i+"#"+j; r.ord=i*100000+j; }); });
+  $("#mainCol").classList.toggle("hidden", state.files.length === 0);
+  $("#drop").classList.toggle("compact", state.files.length > 0);
+  $("#dropNote").classList.toggle("hidden", state.files.length === 0);
+  renderAll();
+  toast(allRecs().length + " mal tanımı yüklendi.");
+}
+
+/* ============ olaylar ============ */
+$("#pick").onclick = () => $("#file").click();
+$("#file").onchange = e => { loadFiles(e.target.files); e.target.value = ""; };
+
+const drop = $("#drop");
+["dragenter","dragover"].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add("drag"); }));
+["dragleave","drop"].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove("drag"); }));
+drop.addEventListener("drop", e => loadFiles(e.dataTransfer.files));
+
+["#find","#repl"].forEach(sel => $(sel).addEventListener("input", renderPreview));
+["#optCase","#optWord","#optRegex","#scope"].forEach(sel => $(sel).addEventListener("change", renderPreview));
+["#q","#listFilter","#fileFilter","#onlyChanged","#limit"].forEach(sel => {
+  $(sel).addEventListener("input", () => { renderTable(); if (state.tab==="replace") renderPreview(); });
+  $(sel).addEventListener("change", () => { renderTable(); if (state.tab==="replace") renderPreview(); });
+});
+
+$("#clearFind").onclick = () => { $("#find").value=""; $("#repl").value=""; renderPreview(); };
+
+$("#apply").onclick = () => {
+  const needle = $("#find").value, repl = $("#repl").value, o = opts();
+  const res = runOp(`"${needle}" → "${repl}"`, txt => {
+    const ms = findMatches(txt, needle, o);
+    if (ms === null) return null;
+    return ms.length ? replaceIn(txt, ms, repl, o) : txt;
+  });
+  if (res.error) toast("Geçersiz regex.");
+  else toast(res.n ? res.n + " satır güncellendi." : "Değişen satır olmadı.");
+};
+
+document.querySelectorAll("[data-fix]").forEach(b => b.onclick = () => {
+  const kind = b.dataset.fix;
+  const fns = {
+    spaces: t => t.replace(/[ \t]{2,}/g," "),
+    trim:   t => t.replace(/\s*\n\s*/g," ").trim(),
+    punct:  t => t.replace(/\s+([,;.])/g,"$1"),
+    paren:  t => t.replace(/\(\s+/g,"(").replace(/\s+\)/g,")").replace(/\s*\(\s*/g," ("),
+    ascii:  t => t.replace(/[çğıİöşüÇĞÖŞÜâîûÂÎÛ]/g, c => TR_ASCII[c] || c),
+    shrink: t => shrinkTo(t, charLimit() || 100)
+  };
+  const res = runOp(b.textContent, fns[kind]);
+  if (kind === "shrink"){
+    const lim = charLimit() || 100;
+    const left = scopeRecs().filter(r => r.current.length > lim).length;
+    toast((res.n ? res.n + " satır kısaltıldı." : "Sınırı aşan satır yok.") +
+          (left ? ` ${left} satır hâlâ ${lim} karakterin üstünde.` : ""));
+  } else {
+    toast(res.n ? res.n + " satır düzeltildi." : "Düzeltilecek satır yok.");
+  }
+});
+
+$("#selAll").onchange = e => {
+  const on = e.target.checked;
+  filteredRecs().forEach(r => r.selected = on);
+  renderTable();
+  if (state.tab==="replace") renderPreview();
+};
+
+$("#undo").onclick = undo;
+$("#resetAll").onclick = () => {
+  if (!confirm("Tüm değişiklikler geri alınacak. Devam edilsin mi?")) return;
+  allRecs().forEach(r => r.current = r.original);
+  state.ops = [];
+  renderAll();
+  toast("Tüm değişiklikler sıfırlandı.");
+};
+$("#csv").onclick = downloadCsv;
+
+document.querySelectorAll(".tab").forEach(t => t.onclick = () => {
+  document.querySelectorAll(".tab").forEach(x => x.classList.remove("on"));
+  t.classList.add("on");
+  state.tab = t.dataset.tab;
+  $("#tab-replace").classList.toggle("hidden", state.tab !== "replace");
+  $("#tab-groups").classList.toggle("hidden", state.tab !== "groups");
+  $("#tab-sarfiyat").classList.toggle("hidden", state.tab !== "sarfiyat");
+  if (state.tab === "groups") renderGroups();
+  else if (state.tab === "replace") renderPreview();
+  else renderCalc();
+});
+
+/* ============ sarfiyat tablosu fark hesaplama ============ */
+$("#thr").addEventListener("input", renderGroups);
+
+function parseNum(s){
+  s = String(s == null ? "" : s).replace(/\s/g,"").replace(/%/g,"");
+  if (!s) return NaN;
+  if (s.includes(",") && s.includes(".")) s = s.replace(/\./g,"").replace(",",".");
+  else if (s.includes(",")) s = s.replace(",",".");
+  else if (/^-?\d{1,3}(\.\d{3})+$/.test(s)) s = s.replace(/\./g,"");
+  else if ((s.match(/\./g) || []).length > 1) s = s.replace(/\./g,"");
+  const v = parseFloat(s);
+  return isNaN(v) ? NaN : v;
+}
+function fmtNum(v, d){
+  if (!isFinite(v)) return "—";
+  return v.toLocaleString("tr-TR", {minimumFractionDigits:d===undefined?2:d, maximumFractionDigits:d===undefined?2:d});
+}
+function calcRow(cell, name, value, formula, note){
+  const bad = !isFinite(value);
+  return `<div class="calc-row ${bad?"bad":""}">
+    <div class="calc-head">
+      <span class="calc-name">${esc(name)} <span class="calc-cell">${esc(cell)}</span></span>
+      <span class="calc-value">${bad ? "—" : fmtNum(value)}</span>
+    </div>
+    <div class="calc-formula">${esc(formula)}</div>
+    <div class="calc-note">${esc(note)}</div>
+  </div>`;
+}
+function renderCalc(){
+  const fark1 = parseNum($("#s1fark").value), kar = parseNum($("#s1karisim").value),
+        fire1 = parseNum($("#s1fire").value), bol = parseNum($("#s1bol").value),
+        ekle = parseNum($("#s1ekle").value);
+  const b5 = fark1 / kar * fire1;
+  const b7 = b5 / bol;
+  const b9 = b7 + ekle;
+  $("#calc1").innerHTML =
+    calcRow("B5", "Fire dahil ihtiyaç", b5,
+      "= Fark ÷ Karışım oranı × Fire oranı",
+      `${fmtNum(fark1)} ÷ ${fmtNum(kar,2)} × ${fmtNum(fire1,2)} = ${fmtNum(b5)}  ·  Excel: =B2/B3*B4`) +
+    calcRow("B7", "Bölünmüş miktar", b7,
+      "= B5 ÷ Bölen",
+      `${fmtNum(b5)} ÷ ${fmtNum(bol,0)} = ${fmtNum(b7)}  ·  Excel: =B5/4`) +
+    calcRow("B9", "Sabit eklenmiş miktar", b9,
+      "= B7 + Eklenen sabit",
+      `${fmtNum(b7)} + ${fmtNum(ekle,0)} = ${fmtNum(b9)}  ·  Excel: =B7+1500`);
+
+  const fark2 = parseNum($("#s2fark").value), fire2 = parseNum($("#s2fire").value);
+  const e5 = fark2 * fire2;
+  const e6 = e5 / 2;
+  $("#calc2").innerHTML =
+    calcRow("E5", "Fire uygulanmış fark", e5,
+      "= Fark × Fire oranı",
+      `${fmtNum(fark2)} × ${fmtNum(fire2,2)} = ${fmtNum(e5)}  ·  Excel: =E2*E3`) +
+    calcRow("E6", "Yarısı", e6,
+      "= E5 ÷ 2",
+      `${fmtNum(e5)} ÷ 2 = ${fmtNum(e6)}  ·  Excel: =E5/2`);
+}
+const CALC_DEFAULTS = {s1fark:"36.747,38", s1karisim:"0,65", s1fire:"0,95", s1bol:"4", s1ekle:"1.500",
+                       s2fark:"8.657,89", s2fire:"0,95"};
+Object.keys(CALC_DEFAULTS).forEach(id => $("#"+id).addEventListener("input", renderCalc));
+$("#calcReset").onclick = () => {
+  Object.entries(CALC_DEFAULTS).forEach(([id,v]) => $("#"+id).value = v);
+  renderCalc(); toast("Excel'deki değerlere dönüldü.");
+};
+$("#calcCopy").onclick = () => {
+  const lines = [...document.querySelectorAll("#calc1 .calc-row, #calc2 .calc-row")].map(r =>
+    r.querySelector(".calc-cell").textContent + "\t" +
+    r.querySelector(".calc-name").childNodes[0].textContent.trim() + "\t" +
+    r.querySelector(".calc-value").textContent + "\t" +
+    r.querySelector(".calc-formula").textContent);
+  const txt = lines.join("\n");
+  if (navigator.clipboard) navigator.clipboard.writeText(txt).then(()=>toast("Sonuçlar panoya kopyalandı."), ()=>toast("Kopyalanamadı."));
+  else toast("Kopyalama bu tarayıcıda desteklenmiyor.");
+};
+
+window.addEventListener("resize", () => { if (state.files.length) sizeMalColumn(filteredRecs()); });
+
+document.addEventListener("keydown", e => {
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z" && state.files.length){
+    const tag = document.activeElement && document.activeElement.tagName;
+    if (tag === "TEXTAREA" || tag === "INPUT") return;
+    e.preventDefault(); undo();
+  }
+});
+
+renderPreview();
+renderCalc();
+})();
+</script>
+</body>
+</html>
