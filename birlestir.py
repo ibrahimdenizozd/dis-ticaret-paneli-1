@@ -803,13 +803,18 @@ SABLON = """<!DOCTYPE html>
                white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }}
   .marka {{ display: flex; align-items: center; gap: 9px; flex: 0 1 auto; min-width: 0; }}
   .marka .logo {{ width: 24px; height: 25px; color: #4fc27e; flex: 0 0 auto; }}
-  /* Sekmeler daralarak sığar; başlık çubuğunda kaydırma çubuğu çıkmaz. */
-  nav {{ display: flex; gap: 1px; flex: 1 1 auto; min-width: 0; overflow: hidden; }}
+  /* Sekmeler hem masaüstünde daralarak sığar hem de mobilde parmakla
+     yatay kaydırılabilir. Kaydırma çubuğu her iki platformda da gizlenir. */
+  nav {{
+    display: flex; gap: 1px; flex: 1 1 auto; min-width: 0;
+    overflow-x: auto; -webkit-overflow-scrolling: touch;
+    -ms-overflow-style: none; scrollbar-width: none;
+  }}
+  nav::-webkit-scrollbar {{ display: none; }}
   .tab {{
     background: transparent; border: 0; border-bottom: 3px solid transparent;
     color: #c7d6e4; font: inherit; font-size: 13px; padding: 13px 12px 10px;
-    cursor: pointer; white-space: nowrap; flex: 0 1 auto;
-    min-width: 0; overflow: hidden; text-overflow: ellipsis;
+    cursor: pointer; white-space: nowrap; flex: 0 0 auto;
   }}
   /* Pencere daraldıkça önce başlık, sonra durum yazısı, sonra logo çekilir;
      sekmeler en son ve en az kısılır.                                     */
@@ -823,7 +828,31 @@ SABLON = """<!DOCTYPE html>
     .marka .logo {{ display: none; }}
     .tab {{ padding: 13px 7px 10px; font-size: 12px; }}
   }}
+  /* ---- Mobil (≤ 768 px) ---- */
+  @media (max-width: 768px) {{
+    header {{
+      flex-wrap: wrap; padding: 0 8px; gap: 2px;
+    }}
+    header h1 {{ display: block !important; font-size: 13px; padding: 7px 0; }}
+    .marka {{ flex: 1 1 auto; min-width: 0; }}
+    .marka .logo {{ display: none; }}
+    /* Sekmeler ikinci satıra taşınır, tam genişlik, parmakla kaydırılır */
+    nav {{
+      order: 10; flex: 0 0 100%;
+      border-top: 1px solid rgba(255,255,255,.12);
+      padding-bottom: 2px;
+    }}
+    .tab {{ padding: 9px 13px 7px; font-size: 13px; flex: 0 0 auto; }}
+    .spacer {{ display: none; }}
+    #kayitDurum {{ display: none !important; }}
+    /* Klasör/değiştir: File System Access API mobil Chrome'da yok */
+    #kayitKlasor, #kayitDegis {{ display: none !important; }}
+    .icon-btn {{ font-size: 11.5px; padding: 4px 8px; margin-left: 4px; }}
+  }}
   .tab:hover {{ color: #fff; }}
+  .tab[draggable] {{ cursor: grab; }}
+  .tab[draggable]:active {{ cursor: grabbing; }}
+  .tab.drag-over {{ border-left: 3px solid #fff; padding-left: 9px; }}
 {tab_renk}
   .tab.active {{ color: #fff; border-bottom-color: #ffb547; font-weight: 600; }}
   .spacer {{ margin-left: auto; }}
@@ -899,6 +928,76 @@ SABLON = """<!DOCTYPE html>
     aktif = id;
     try {{ window.localStorage.setItem("__panel_aktif", id); }} catch (e) {{}}
   }}
+
+  /* --- sekme sırası sürükle-bırak ---
+     Sekmeye tıkla → panel açılır.
+     Sekmeyi sürükle → yeni konuma bırak → sıra değişir ve localStorage'a yazılır.
+     Sekmeler arası boşluk sürükleme sırasında "bırak buraya" çizgisiyle gösterilir. */
+  (function () {{
+    var nav = document.getElementById("nav");
+    var SIRA_KEY = "__sekme_sirasi";
+    var src = null, over = null;
+
+    function sirala() {{
+      try {{
+        var kayit = JSON.parse(localStorage.getItem(SIRA_KEY) || "null");
+        if (!Array.isArray(kayit)) return;
+        kayit.forEach(function (id) {{
+          var t = nav.querySelector('.tab[data-panel="' + id + '"]');
+          if (t) nav.appendChild(t);
+        }});
+      }} catch (e) {{}}
+    }}
+    function kaydet() {{
+      var ids = [].map.call(nav.querySelectorAll(".tab"), function (t) {{ return t.dataset.panel; }});
+      try {{ localStorage.setItem(SIRA_KEY, JSON.stringify(ids)); }} catch (e) {{}}
+    }}
+
+    nav.addEventListener("dragstart", function (e) {{
+      var t = e.target.closest(".tab"); if (!t) return;
+      src = t;
+      t.style.opacity = "0.45";
+      e.dataTransfer.effectAllowed = "move";
+    }});
+    nav.addEventListener("dragend", function (e) {{
+      var t = e.target.closest(".tab"); if (!t) return;
+      t.style.opacity = "";
+      src = null; over = null;
+      nav.querySelectorAll(".tab").forEach(function (x) {{ x.classList.remove("drag-over"); }});
+    }});
+    nav.addEventListener("dragover", function (e) {{
+      e.preventDefault(); e.dataTransfer.dropEffect = "move";
+      var t = e.target.closest(".tab"); if (!t || t === src) return;
+      if (t === over) return;
+      nav.querySelectorAll(".tab").forEach(function (x) {{ x.classList.remove("drag-over"); }});
+      over = t; t.classList.add("drag-over");
+    }});
+    nav.addEventListener("dragleave", function (e) {{
+      if (!e.relatedTarget || !nav.contains(e.relatedTarget)) {{
+        nav.querySelectorAll(".tab").forEach(function (x) {{ x.classList.remove("drag-over"); }});
+        over = null;
+      }}
+    }});
+    nav.addEventListener("drop", function (e) {{
+      e.preventDefault();
+      var t = e.target.closest(".tab");
+      if (!t || !src || t === src) return;
+      var tabs = [].slice.call(nav.querySelectorAll(".tab"));
+      var si = tabs.indexOf(src), ti = tabs.indexOf(t);
+      if (si < ti) nav.insertBefore(src, t.nextSibling); else nav.insertBefore(src, t);
+      nav.querySelectorAll(".tab").forEach(function (x) {{ x.classList.remove("drag-over"); }});
+      kaydet();
+    }});
+
+    /* Sekmelere draggable ekle — yalnızca dokunmatik olmayan cihazlarda
+       (mobilde draggable dokunma olaylarını engeller, sürükleme yerine
+       parmakla kaydırma kullanılır).                                    */
+    if (!('ontouchstart' in window) && !navigator.maxTouchPoints) {{
+      nav.querySelectorAll(".tab").forEach(function (t) {{ t.draggable = true; }});
+    }}
+    /* Kaydedilmiş sırayı uygula */
+    sirala();
+  }})();
 
   document.getElementById("nav").addEventListener("click", function (e) {{
     var t = e.target.closest(".tab");
