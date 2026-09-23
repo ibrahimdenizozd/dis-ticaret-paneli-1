@@ -117,6 +117,8 @@ aside.open{transform:none}
     <label><input type="checkbox" id="hidePasif" checked> Pasifleri gizle</label>
     <button class="tbtn pri" id="addM">Yeni hammadde</button>
     <button class="tbtn" id="csv">Listeyi CSV indir</button>
+    <button class="tbtn" id="xlsxUp" title="Haftalık stok Excel dosyasını yükle">📥 Excel Stok Yükle</button>
+    <input type="file" id="xlsxFile" accept=".xlsx" hidden>
     <div class="legend">
       <span><i style="background:var(--steel)"></i>Stok var</span>
       <span><i style="background:var(--red)"></i>Eksi bakiye</span>
@@ -188,6 +190,79 @@ $('file').onchange=e=>{const f=e.target.files[0];if(!f)return;const rd=new FileR
     catch(err){alert('Yedek dosyası okunamadı: '+err.message)}};rd.readAsText(f);e.target.value=''};
 
 D=loadData();syncHead();render();
+
+/* ---- Excel stok yükleme ---- */
+function loadXlsxLib(){
+  return window.XLSX ? Promise.resolve(window.XLSX) : new Promise((res,rej)=>{
+    const s=document.createElement('script');
+    s.src='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+    s.onload=()=>res(window.XLSX); s.onerror=rej;
+    document.head.appendChild(s);
+  });
+}
+$('xlsxUp').addEventListener('click',()=>$('xlsxFile').click());
+$('xlsxFile').addEventListener('change',async function(e){
+  const file=e.target.files[0]; if(!file) return;
+  const btn=$('xlsxUp');
+  btn.disabled=true; btn.textContent='Yükleniyor…';
+  try{
+    const XLSX=await loadXlsxLib();
+    const buf=await file.arrayBuffer();
+    const wb=XLSX.read(buf,{type:'array'});
+    const curWk=D.wk, wkKey=String(D.yr*100+D.wk);
+    const codeMap={};
+    for(const m of D.mats) if(m.code) codeMap[m.code]=m;
+    let updated=0; const skipped=[];
+    for(const sheetName of wb.SheetNames){
+      const ws=wb.Sheets[sheetName];
+      const data=XLSX.utils.sheet_to_json(ws,{header:1,defval:null});
+      if(data.length<4) continue;
+      // header satırını bul ("current stock" içeren)
+      let hdrIdx=2;
+      for(let i=0;i<Math.min(data.length,10);i++){
+        if(data[i]&&data[i].some(c=>c==='current stock')){hdrIdx=i;break;}
+      }
+      const codeRowIdx=Math.max(0,hdrIdx-2);
+      const headerRow=data[hdrIdx]||[];
+      const codeRow=data[codeRowIdx]||[];
+      const stockCols=[];
+      for(let ci=0;ci<headerRow.length;ci++) if(headerRow[ci]==='current stock') stockCols.push(ci);
+      if(!stockCols.length) continue;
+      // Mevcut hafta satırı
+      let wkRow=null;
+      for(let ri=hdrIdx+1;ri<data.length;ri++){
+        const r=data[ri];
+        if(r&&(r[0]===curWk||r[0]===String(curWk))){wkRow=r;break;}
+      }
+      if(!wkRow) continue;
+      for(const ci of stockCols){
+        // Kod: codeRow'da ci-1'den başlayan blok
+        const parts=[];
+        for(let j=Math.max(0,ci-1);j<Math.min(ci+5,codeRow.length);j++){
+          const v=codeRow[j];
+          if(v!=null&&String(v).trim()&&String(v).trim()!=='None') parts.push(String(v).trim());
+        }
+        const code=parts.join('-'); if(!code) continue;
+        const val=wkRow[ci];
+        if(val==null||(typeof val==='string'&&val.includes('#'))) continue;
+        const numVal=parseFloat(val);
+        if(!isFinite(numVal)||numVal<=0) continue;
+        const mat=codeMap[code];
+        if(!mat){skipped.push(code);continue;}
+        if(!mat.rows[wkKey]) mat.rows[wkKey]={};
+        mat.rows[wkKey].s=String(Math.round(numVal));
+        updated++;
+      }
+    }
+    saveData(); render();
+    alert(`✅ ${updated} malzeme güncellendi (Hafta ${curWk}).`+(skipped.length?`\n⚠️ Eşleşmeyen kod: ${skipped.length}`:''));
+  }catch(err){
+    alert('Hata: '+err.message);
+  }finally{
+    btn.disabled=false; btn.textContent='📥 Excel Stok Yükle';
+    e.target.value='';
+  }
+});
 </script>
 </body>
 </html>
