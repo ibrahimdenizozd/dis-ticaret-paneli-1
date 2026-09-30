@@ -110,7 +110,9 @@
   #giris button { margin-top: 18px; width: 100%; padding: 10px; font-size: 14px; font-weight: 600;
     background: #1F8A8A; color: #fff; border: 0; border-radius: 4px; cursor: pointer; }
   #giris button:hover { background: #22A0A0; }
-  #girisHata { color: #B03A2E; font-size: 12.5px; min-height: 18px; margin-top: 10px; }
+  #girisHata, .ghata { color: #B03A2E; font-size: 12.5px; min-height: 18px; margin-top: 10px; }
+  #giris .glink { display: inline-block; margin-top: 6px; font-size: 12.5px; color: #2E7FB8; text-decoration: none; }
+  #giris .glink:hover { text-decoration: underline; }
 </style>
 </head>
 <body class="kilitli">
@@ -121,6 +123,17 @@
   <label for="gSif">Şifre</label><input id="gSif" type="password" autocomplete="off">
   <button type="submit">Giriş</button>
   <div id="girisHata"></div>
+  <a href="#" id="unuttum" class="glink">Şifremi unuttum</a>
+</form>
+<form id="sifirForm" autocomplete="off" style="display:none">
+  <h2>Şifre sıfırlama</h2>
+  <p>Kurtarma kodunu ve yeni şifreyi girin. Kod, panel sahibinde (Deniz Özdemir) kayıtlıdır.</p>
+  <label for="sKod">Kurtarma kodu</label><input id="sKod" placeholder="FLD-XXXX-XXXX-XXXX" autocomplete="off">
+  <label for="sYeni">Yeni şifre</label><input id="sYeni" type="password" autocomplete="new-password">
+  <label for="sYeni2">Yeni şifre (tekrar)</label><input id="sYeni2" type="password" autocomplete="new-password">
+  <button type="submit">Şifreyi sıfırla</button>
+  <div id="sifirHata" class="ghata"></div>
+  <a href="#" id="geri" class="glink">← Girişe dön</a>
 </form></div>
 
 <header>
@@ -141,6 +154,7 @@
   <span id="kayitDurum" style="font-size:11px;color:#9fb3c8;margin-left:10px;white-space:nowrap"></span>
   <input type="file" id="kayitDosya" accept=".json,application/json" style="display:none">
   <button class="icon-btn" id="reload" title="Aktif paneli sıfırdan yükle">Yenile</button>
+  <button class="icon-btn" id="cikis" title="Oturumu sonlandır" style="margin-left:8px;border-color:#E0A89F;color:#FFD9D3;white-space:nowrap;flex:0 0 auto">Oturumu kapat</button>
 </header>
 
 <main id="main"><div id="bos">Panel yükleniyor…</div></main>
@@ -729,7 +743,21 @@
 /* --- giriş ve 5 dakika hareketsizlikte otomatik çıkış ---
    Not: bu yalnızca ekran kilididir; sayfanın kaynağını gizlemez. */
 (function () {
-  var KUL = "admin", SIF = "1234", SURE = 5 * 60 * 1000;
+  var KUL = "admin", SURE = 5 * 60 * 1000, ANAHTAR = "__panel_sifre";
+  var VARSAYILAN = "03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4";   /* 1234'ün SHA-256 özeti */
+  var KURTARMA = "bcc9cba80ae5979c6be7bc0ab09735161bd475a01d41c066d49545c5c5a6f06d";     /* kurtarma kodunun SHA-256 özeti */
+  function ozet(t) {
+    return crypto.subtle.digest("SHA-256", new TextEncoder().encode(t)).then(function (b) {
+      return Array.from(new Uint8Array(b)).map(function (x) { return x.toString(16).padStart(2, "0"); }).join("");
+    });
+  }
+  function kayitli() { try { return localStorage.getItem(ANAHTAR) || VARSAYILAN; } catch (e) { return VARSAYILAN; } }
+  function $g(id) { return document.getElementById(id); }
+  function formGoster(sifir) {
+    $g("girisForm").style.display = sifir ? "none" : "";
+    $g("sifirForm").style.display = sifir ? "" : "none";
+    $g(sifir ? "sKod" : "gKul").focus();
+  }
   var body = document.body, son = Date.now();
   function hareket() { son = Date.now(); }
   function dinle(doc) {
@@ -742,14 +770,34 @@
     body.classList.add("kilitli");
     document.getElementById("girisNot").textContent = neden || "Devam etmek için giriş yapın.";
     document.getElementById("gSif").value = ""; document.getElementById("girisHata").textContent = "";
+    formGoster(false);
     setTimeout(function () { document.getElementById("gKul").focus(); }, 30);
   }
   document.getElementById("girisForm").addEventListener("submit", function (e) {
     e.preventDefault();
-    var k = document.getElementById("gKul").value.trim(), p = document.getElementById("gSif").value;
-    if (k === KUL && p === SIF) { body.classList.remove("kilitli"); hareket(); }
-    else { document.getElementById("girisHata").textContent = "Kullanıcı adı veya şifre hatalı."; document.getElementById("gSif").select(); }
+    var k = $g("gKul").value.trim(), p = $g("gSif").value;
+    ozet(p).then(function (h) {
+      if (k === KUL && h === kayitli()) { body.classList.remove("kilitli"); hareket(); }
+      else { $g("girisHata").textContent = "Kullanıcı adı veya şifre hatalı."; $g("gSif").select(); }
+    });
   });
+  $g("unuttum").addEventListener("click", function (e) { e.preventDefault(); $g("sifirHata").textContent = ""; formGoster(true); });
+  $g("geri").addEventListener("click", function (e) { e.preventDefault(); formGoster(false); });
+  $g("sifirForm").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var kod = $g("sKod").value.trim().toUpperCase(), y1 = $g("sYeni").value, y2 = $g("sYeni2").value, H = $g("sifirHata");
+    if (y1.length < 4) { H.textContent = "Yeni şifre en az 4 karakter olmalı."; return; }
+    if (y1 !== y2) { H.textContent = "Yeni şifreler birbiriyle aynı değil."; return; }
+    ozet(kod).then(function (hk) {
+      if (hk !== KURTARMA) { H.textContent = "Kurtarma kodu hatalı."; return; }
+      return ozet(y1).then(function (hy) {
+        try { localStorage.setItem(ANAHTAR, hy); } catch (err) { H.textContent = "Şifre bu tarayıcıya kaydedilemedi."; return; }
+        $g("sKod").value = $g("sYeni").value = $g("sYeni2").value = "";
+        formGoster(false); $g("girisNot").textContent = "Şifre değiştirildi. Yeni şifrenizle giriş yapın.";
+      });
+    });
+  });
+  $g("cikis").addEventListener("click", function () { kilitle("Oturum kapatıldı."); });
   dinle(document);
   setInterval(function () {
     [].forEach.call(document.querySelectorAll("iframe"), function (f) {
