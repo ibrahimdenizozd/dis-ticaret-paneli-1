@@ -113,7 +113,7 @@
   <button class="icon-btn" id="kayitGeri" title="Kayıt dosyasından bütün panelleri geri yükle">Geri yükle</button>
   <span id="kayitDurum" style="font-size:11px;color:#9fb3c8;margin-left:10px;white-space:nowrap"></span>
   <input type="file" id="kayitDosya" accept=".json,application/json" style="display:none">
-  <button class="icon-btn" id="reload" title="Aktif paneli sıfırdan yükle">Yenile</button>
+  <button class="icon-btn" id="reload" title="Sayfayı önbelleği atlayarak yeniden yükle (Ctrl+Shift+R)">Yenile</button>
 </header>
 
 <main id="main"><div id="bos">Panel yükleniyor…</div></main>
@@ -350,10 +350,16 @@
     if (t) goster(t.dataset.panel);
   });
 
+  /* Yenile = Ctrl+Shift+R: sayfayı önbelleği atlayarak sunucudan yeniden indirir.
+     Önce sayfa önbelleği tazelenir (cache:"reload"), sonra sayfa yeniden yüklenir. */
   document.getElementById("reload").addEventListener("click", function () {
-    if (!aktif) return;
-    if (yuklenen[aktif]) { yuklenen[aktif].remove(); delete yuklenen[aktif]; }
-    goster(aktif);
+    var b = this; b.disabled = true; b.textContent = "Yenileniyor…";
+    var git = function () { window.location.reload(); };
+    try {
+      fetch(window.location.href, { cache: "reload", credentials: "same-origin" })
+        .then(git, git);
+      setTimeout(git, 4000);           // ağ yanıt vermezse yine de yenile
+    } catch (e) { git(); }
   });
 
   var son = null;
