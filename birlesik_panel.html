@@ -748,7 +748,13 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
             if (r.data && r.data.length) return kuyruk("sil", x.k);                    // zaten yedekli
             var uz = (v.ad.match(/\.([A-Za-z0-9]{1,6})$/) || [, "bin"])[1].toLowerCase();
             var ay = v.tarih.slice(0, 7);
-            var yol = v.panel + "/" + ay + "/" + Date.now() + "-" + v.ozet.slice(0, 12) + "." + uz;
+            /* depo yolunda Türkçe harf ve boşluk olamıyor: ad sadeleştirilir, başına tarih-saat konur */
+            var tr = { "ç": "c", "ğ": "g", "ı": "i", "İ": "I", "ö": "o", "ş": "s", "ü": "u", "Ç": "C", "Ğ": "G", "Ö": "O", "Ş": "S", "Ü": "U" };
+            var kok = v.ad.replace(/\.[^.]*$/, "").replace(/[çğıİöşüÇĞÖŞÜ]/g, function (c) { return tr[c]; })
+                          .replace(/[^A-Za-z0-9._-]+/g, "_").replace(/^_+|_+$/g, "").slice(0, 80) || "dosya";
+            var z = new Date(v.tarih), iki = function (n) { return ("0" + n).slice(-2); };
+            var damga = z.getFullYear() + "-" + iki(z.getMonth() + 1) + "-" + iki(z.getDate()) + "_" + iki(z.getHours()) + "-" + iki(z.getMinutes());
+            var yol = v.panel + "/" + ay + "/" + damga + "_" + kok + "_" + v.ozet.slice(0, 6) + "." + uz;
             return sb.storage.from(KOVA).upload(yol, v.veri, { contentType: v.tur || "application/octet-stream", upsert: false }).then(function (u) {
               if (u.error) throw u.error;
               return sb.from(DTABLO).insert({ panel: v.panel, ad: v.ad, yol: yol, boyut: v.boyut, ozet: v.ozet, yukleyen: EPOSTA, tarih: v.tarih }).then(function (r2) {
