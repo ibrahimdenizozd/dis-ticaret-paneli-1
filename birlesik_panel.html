@@ -326,6 +326,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
     var id = String(k).split(":")[0];
     var t = document.querySelector('.tab[data-panel="' + id + '"]');
     if (!t && id === "yedek") return { id: id, ad: "Kayıt dosyası (JSON)" };
+    if (!t && id === "otoyedek") return { id: id, ad: "Otomatik JSON yedeği" };
     return { id: id, ad: t ? t.textContent.trim() : id };
   }
   function agHatasi(e) {
@@ -569,7 +570,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
     if (!ks.length) { durumGuncel(); return; }
     gonderiyor = true; durumGuncel();
     ks.reduce(function (p, k) { return p.then(function () { return gonderBir(k); }); }, Promise.resolve())
-      .then(function () { gonderiyor = false; return metaKaydet(); })
+      .then(function () { gonderiyor = false; otoYedekPlanla(); return metaKaydet(); })
       .then(function () { durumGuncel(); if (bekleyenSay() && !Object.keys(CAKISMA).length) planla(1500); })
       .catch(function (e) {
         gonderiyor = false; metaKaydet();
@@ -724,12 +725,12 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
     var b = bantEkle(t, ""); b.style.opacity = ".92";
     setTimeout(function () { b.remove(); }, 3500);
   }
-  window.__dosyaYedekle = function (panel, f) {
+  window.__dosyaYedekle = function (panel, f, klasor) {
     if (!f || !f.size) return Promise.resolve();
     if (f.size > DOSYA_SINIR) { kucukBildirim("<b>" + f.name + "</b> 50 MB'tan büyük, yedeklenmedi."); return Promise.resolve(); }
     return f.arrayBuffer().then(function (buf) {
       return crypto.subtle.digest("SHA-256", buf).then(function (h) {
-        return kuyruk("ekle", { panel: panel, ad: f.name, tur: f.type || "", boyut: f.size, ozet: hex(h),
+        return kuyruk("ekle", { panel: panel, ad: f.name, tur: f.type || "", boyut: f.size, ozet: hex(h), klasor: klasor || "",
                                 tarih: new Date().toISOString(), veri: new Blob([buf], { type: f.type || "application/octet-stream" }) });
       });
     }).then(function () { dosyaSayiGoster(); dosyaPlanla(300); }).catch(function () {});
@@ -754,13 +755,13 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
                           .replace(/[^A-Za-z0-9._-]+/g, "_").replace(/^_+|_+$/g, "").slice(0, 80) || "dosya";
             var z = new Date(v.tarih), iki = function (n) { return ("0" + n).slice(-2); };
             var damga = z.getFullYear() + "-" + iki(z.getMonth() + 1) + "-" + iki(z.getDate()) + "_" + iki(z.getHours()) + "-" + iki(z.getMinutes());
-            var yol = v.panel + "/" + ay + "/" + damga + "_" + kok + "_" + v.ozet.slice(0, 6) + "." + uz;
+            var yol = (v.klasor || v.panel + "/" + ay) + "/" + damga + "_" + kok + "_" + v.ozet.slice(0, 6) + "." + uz;
             return sb.storage.from(KOVA).upload(yol, v.veri, { contentType: v.tur || "application/octet-stream", upsert: false }).then(function (u) {
               if (u.error) throw u.error;
               return sb.from(DTABLO).insert({ panel: v.panel, ad: v.ad, yol: yol, boyut: v.boyut, ozet: v.ozet, yukleyen: EPOSTA, tarih: v.tarih }).then(function (r2) {
                 if (r2.error && r2.error.code === "23505") return sb.storage.from(KOVA).remove([yol]);   // aynı anda başka yerden yüklenmiş
                 if (r2.error) { sb.storage.from(KOVA).remove([yol]); throw r2.error; }
-                biten.push(v.ad);
+                if (v.panel !== "otoyedek") biten.push(v.ad); else otoTemizle();
               });
             }).then(function () { return kuyruk("sil", x.k); });
           });
@@ -781,6 +782,38 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
       dosyaPlanla(120000);
     });
   }
+
+
+  /* ---------------- otomatik JSON yedeği ----------------
+     Sunucuya bir değişiklik gittiğinde, bütün panellerin anlık JSON kopyası
+     panel-dosyalar/yedek/json klasörüne yazılır. Art arda değişikliklerde her
+     tuşta dosya oluşmasın diye: son değişiklikten 2 dk sonra alınır, iki yedek
+     arasında en az 30 dk olur, en yeni 20 yedek saklanır, eskiler silinir. */
+  var OTO_BEKLE = 2 * 60000, OTO_ARALIK = 30 * 60000, OTO_SAKLA = 20, otoZaman = null;
+  function otoSon() { try { return +(localStorage.getItem("__otoYedekSon") || 0); } catch (e) { return 0; } }
+  function otoYedekPlanla() {
+    clearTimeout(otoZaman);
+    otoZaman = setTimeout(otoYedekAl, Math.max(OTO_BEKLE, otoSon() + OTO_ARALIK - Date.now()));
+  }
+  function otoYedekAl() {
+    if (!hazir || !window.__anlikGoruntu) return;
+    if (bekleyenSay() || gonderiyor) { otoYedekPlanla(); return; }
+    window.__anlikGoruntu().then(function (g) {
+      var f = new File([JSON.stringify(g)], "panel-verileri.json", { type: "application/json" });
+      try { localStorage.setItem("__otoYedekSon", String(Date.now())); } catch (e) {}
+      return window.__dosyaYedekle("otoyedek", f, "yedek/json");
+    }).catch(function () {});
+  }
+  function otoTemizle() {
+    sb.from(DTABLO).select("id,yol").eq("panel", "otoyedek").order("tarih", { ascending: false }).then(function (r) {
+      var eski = (r.data || []).slice(OTO_SAKLA);
+      if (!eski.length) return;
+      return sb.storage.from(KOVA).remove(eski.map(function (x) { return x.yol; })).then(function () {
+        return sb.from(DTABLO).delete().in("id", eski.map(function (x) { return x.id; }));
+      });
+    }).catch(function () {});
+  }
+  window.__otoYedekAl = otoYedekAl;
 
   /* ---------------- "Dosyalar" penceresi ---------------- */
   var dosyaBtn = document.createElement("button"); dosyaBtn.className = "icon-btn"; dosyaBtn.id = "bulutDosyalar";
@@ -812,7 +845,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
     var p = document.createElement("div"); p.id = "dosyaPen";
     var secenek = [].map.call(document.querySelectorAll(".tab[data-panel]"), function (t) {
       return '<option value="' + kac(t.getAttribute("data-panel")) + '">' + kac(t.textContent.trim()) + "</option>";
-    }).join("") + '<option value="yedek">Kayıt dosyası (JSON)</option>';
+    }).join("") + '<option value="otoyedek">Otomatik JSON yedeği</option><option value="yedek">Kayıt dosyası (JSON)</option>';
     p.innerHTML = '<div class="k"><div class="ust"><b>Yüklenen dosyalar</b>' +
       '<select data-panel><option value="">Bütün paneller</option>' + secenek + "</select>" +
       '<input data-ara placeholder="Dosya adında ara" size="22"><button data-kapat>Kapat</button></div>' +
@@ -1064,7 +1097,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
     var o = {};
     for (var i = 0; i < localStorage.length; i++) {
       var k = localStorage.key(i);
-      if (k && k !== "__panel_aktif" && k.indexOf("sb-") !== 0) o[k] = localStorage.getItem(k);
+      if (k && k !== "__panel_aktif" && k !== "__otoYedekSon" && k.indexOf("sb-") !== 0) o[k] = localStorage.getItem(k);
     }
     return o;
   }
@@ -1257,6 +1290,9 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   /* Bilgisayardaki klasöre otomatik kayıt kaldırıldı: veriler sunucuda tutuluyor. */
   window.__panelDegisti = function () {};
   window.kayitKaydet = kaydet;
+  window.__anlikGoruntu = function () {
+    return (window.__panelDepo ? window.__panelDepo.bekle() : Promise.resolve()).then(anlikGoruntu);
+  };
 })();
 </script>
 
