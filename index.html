@@ -594,6 +594,56 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
     planla();
   };
 
+  /* ---------------- yedek dosyasından geri yükleme ----------------
+     Dosyadaki her anahtar sunucudakinin üzerine yazılır (bilinçli geri yükleme,
+     çakışma sorulmaz). Dosyada olmayan anahtarlara dokunulmaz.
+     Gönderim bitmeden sayfa yenilenmez; ağ yoksa bekleyenler diske yazılır,
+     bağlantı gelince gönderilir. */
+  window.__bulutGeriYukle = function (o, ilerleme) {
+    if (!hazir) return Promise.reject(new Error("Önce giriş yapılıp sunucuyla bağlantı kurulmalı"));
+    var ks = Object.keys(o || {});
+    var bekle = function () {
+      return new Promise(function (res) { (function b() { if (!gonderiyor) res(); else setTimeout(b, 200); })(); });
+    };
+    clearTimeout(zaman);
+    return bekle().then(function () {
+      gonderiyor = true;
+      return surumleriCek().catch(function () { return null; });
+    }).then(function (R) {
+      var yeni = {}, DEPO = D.tumu();
+      Object.keys(DEPO).forEach(function (k) { yeni[k] = DEPO[k]; });
+      ks.forEach(function (k) { yeni[k] = String(o[k]); });
+      hazir = false;                       // yukle'nin bildirimleri tek tek gönderim başlatmasın
+      return D.yukle(yeni).then(function () {
+        hazir = true;
+        ks.forEach(function (k) {
+          if (R) { if (R[k] !== undefined) META.surum[k] = R[k]; else delete META.surum[k]; }
+          META.bekleyen[k] = 1; delete CAKISMA[k]; delete SON[k];
+        });
+        return metaKaydet();
+      }).then(function () {
+        if (!R) { gonderiyor = false; return { gonderilen: 0, kalan: ks.length }; }
+        var i = 0;
+        return ks.reduce(function (p, k) {
+          return p.then(function () {
+            if (ilerleme) ilerleme(++i, ks.length);
+            return gonderBir(k);
+          });
+        }, Promise.resolve()).then(function () {
+          gonderiyor = false;
+          return metaKaydet().then(function () {
+            var kalan = ks.filter(function (k) { return META.bekleyen[k]; }).length;
+            return { gonderilen: ks.length - kalan, kalan: kalan };
+          });
+        }, function (e) {
+          gonderiyor = false;
+          return metaKaydet().then(function () { return { gonderilen: 0, kalan: bekleyenSay(), hata: e }; });
+        });
+      });
+    }).then(function (sonuc) { durumGuncel(); return sonuc; },
+            function (e) { gonderiyor = false; hazir = true; durumGuncel(); throw e; });
+  };
+
   /* ---------------- diğer bilgisayarlardaki değişiklikler ---------------- */
   function duyur(k, s) {
     try { if (kanal) kanal.send({ type: "broadcast", event: "degisti", payload: { anahtar: k, surum: s, cid: CID } }); } catch (e) {}
@@ -898,7 +948,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
     return indexedDB.databases().then(function (liste) {
       var cikti = {}, zincir = Promise.resolve();
       liste.forEach(function (d) {
-        if (!d.name || d.name === "panelKok") return;
+        if (!d.name || d.name === "panelKok" || d.name === "panelDepo") return;
         zincir = zincir.then(function () {
           return dbAc(d.name).then(function (db) {
             var adlar = [].slice.call(db.objectStoreNames);
@@ -942,13 +992,10 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   }
 
   /* ---------- veri geri yazma ---------- */
-  function lsGeri(o) {
-    Object.keys(lsTopla()).forEach(function (k) { localStorage.removeItem(k); });
-    Object.keys(o || {}).forEach(function (k) { try { localStorage.setItem(k, o[k]); } catch (e) {} });
-  }
   function idbGeri(veri) {
     var zincir = Promise.resolve();
     Object.keys(veri || {}).forEach(function (ad) {
+      if (ad === "panelDepo" || ad === "panelKok") return;   // depo yukarıda yazıldı; meta/klasör taşınmaz
       zincir = zincir.then(function () {
         var bilgi = veri[ad], stAdlar = Object.keys(bilgi.store || {});
         return dbAc(ad).then(function (db) {
@@ -1032,13 +1079,48 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
 
   function geriYukle(metin) {
     var g;
-    try { g = JSON.parse(metin); } catch (e) { yaz("dosya okunamadı", "#ff9b9b"); return; }
-    if (!g || (!g.ls && !g.depo)) { yaz("dosya tanınmadı", "#ff9b9b"); return; }
-    if (!confirm("Kayıt dosyasındaki veriler bütün panellere yazılacak ve sayfa yenilenecek.\n" +
-                 "Şu anki veriler değiştirilecek. Devam edilsin mi?")) return;
-    lsGeri(g.ls);
-    var depoIs = window.__panelDepo ? window.__panelDepo.yukle(g.depo || {}) : Promise.resolve();
-    depoIs.then(function () { return idbGeri(g.idb); }).then(function () { location.reload(); });
+    try { g = JSON.parse(metin); } catch (e) { yaz("dosya okunamadı", "#ff9b9b"); alert("Dosya okunamadı: geçerli bir JSON değil."); return; }
+    if (!g || typeof g !== "object" || (!g.ls && !g.depo)) {
+      yaz("dosya tanınmadı", "#ff9b9b");
+      alert("Bu dosya panel kayıt dosyası değil (içinde 'depo' ya da 'ls' bölümü yok).");
+      return;
+    }
+    /* depo yoksa (eski sürüm dosyası) önekli localStorage kayıtları depoya alınır */
+    var depo = {};
+    Object.keys(g.depo || {}).forEach(function (k) { depo[k] = g.depo[k]; });
+    Object.keys(g.ls || {}).forEach(function (k) {
+      if (k.indexOf(":") > 0 && !Object.prototype.hasOwnProperty.call(depo, k)) depo[k] = g.ls[k];
+    });
+    var n = Object.keys(depo).length;
+    var tarih = g.tarih ? new Date(g.tarih).toLocaleString("tr-TR") : "?";
+    var bulut = !!window.__bulutGeriYukle;
+    if (!confirm("Kayıt dosyası: " + tarih + " · " + n + " kayıt\n\n" +
+                 "Dosyadaki veriler panellere yazılacak" + (bulut ? " ve sunucuya gönderilecek (diğer bilgisayarlar da bunu görecek)" : "") +
+                 ". Aynı veri şu an da varsa dosyadakiyle değiştirilecek.\n\nDevam edilsin mi?")) return;
+    Object.keys(g.ls || {}).forEach(function (k) {
+      if (k.indexOf(":") > 0 || k === "__panel_aktif" || k.indexOf("sb-") === 0) return;
+      try { localStorage.setItem(k, g.ls[k]); } catch (e) {}
+    });
+    yaz("geri yükleniyor…", "#ffb547");
+    var is;
+    if (bulut) {
+      is = window.__bulutGeriYukle(depo, function (i, top) { yaz("sunucuya gönderiliyor " + i + "/" + top + "…", "#ffb547"); })
+        .then(function (r) {
+          if (r && r.kalan) alert("Veriler bu bilgisayara yüklendi, ancak " + r.kalan + " kayıt sunucuya henüz gönderilemedi.\n" +
+                                  "Bağlantı gelince otomatik gönderilecek.");
+        });
+    } else if (window.__panelDepo) {
+      var D = window.__panelDepo, yeni = {}, eski = D.tumu();
+      Object.keys(eski).forEach(function (k) { yeni[k] = eski[k]; });
+      Object.keys(depo).forEach(function (k) { yeni[k] = depo[k]; });
+      is = D.yukle(yeni);
+    } else is = Promise.resolve();
+    is.then(function () { return idbGeri(g.idb); })
+      .then(function () { yaz("geri yüklendi", "#9ad29a"); location.reload(); })
+      .catch(function (e) {
+        yaz("geri yükleme başarısız", "#ff9b9b");
+        alert("Geri yükleme yapılamadı: " + ((e && e.message) || e));
+      });
   }
 
   /* ---------- düğmeler ---------- */
@@ -1078,18 +1160,10 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
     yaz("kaydediliyor…");
     kaydet(true);
   });
+  /* Geri yükle her zaman dosya seçtirir. (Tarayıcı, araya izin sorusu girerse
+     dosya penceresini açmayı engelliyor; bu yüzden pencere doğrudan açılır.) */
   document.getElementById("kayitGeri").addEventListener("click", function () {
-    if (kok) {
-      izin(kok, true).then(function (ok) {
-        if (!ok) { document.getElementById("kayitDosya").click(); return; }
-        kok.getFileHandle(DOSYA).then(function (fh) { return fh.getFile(); })
-          .then(function (f) { return f.text(); })
-          .then(geriYukle)
-          .catch(function () { document.getElementById("kayitDosya").click(); });
-      });
-    } else {
-      document.getElementById("kayitDosya").click();
-    }
+    document.getElementById("kayitDosya").click();
   });
   document.getElementById("kayitDosya").addEventListener("change", function (e) {
     var f = e.target.files[0];
