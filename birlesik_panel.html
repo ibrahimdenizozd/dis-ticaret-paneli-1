@@ -725,12 +725,12 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
     var b = bantEkle(t, ""); b.style.opacity = ".92";
     setTimeout(function () { b.remove(); }, 3500);
   }
-  window.__dosyaYedekle = function (panel, f, klasor) {
+  window.__dosyaYedekle = function (panel, f, klasor, sabit) {
     if (!f || !f.size) return Promise.resolve();
     if (f.size > DOSYA_SINIR) { kucukBildirim("<b>" + f.name + "</b> 50 MB'tan büyük, yedeklenmedi."); return Promise.resolve(); }
     return f.arrayBuffer().then(function (buf) {
       return crypto.subtle.digest("SHA-256", buf).then(function (h) {
-        return kuyruk("ekle", { panel: panel, ad: f.name, tur: f.type || "", boyut: f.size, ozet: hex(h), klasor: klasor || "",
+        return kuyruk("ekle", { panel: panel, ad: f.name, tur: f.type || "", boyut: f.size, ozet: hex(h), klasor: klasor || "", sabit: !!sabit,
                                 tarih: new Date().toISOString(), veri: new Blob([buf], { type: f.type || "application/octet-stream" }) });
       });
     }).then(function () { dosyaSayiGoster(); dosyaPlanla(300); }).catch(function () {});
@@ -756,14 +756,16 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
             var z = new Date(v.tarih), iki = function (n) { return ("0" + n).slice(-2); };
             var damga = z.getFullYear() + "-" + iki(z.getMonth() + 1) + "-" + iki(z.getDate()) + "_" + iki(z.getHours()) + "-" + iki(z.getMinutes());
             var yol = (v.klasor || v.panel + "/" + ay) + "/" + damga + "_" + kok + "_" + v.ozet.slice(0, 6) + "." + uz;
-            return sb.storage.from(KOVA).upload(yol, v.veri, { contentType: v.tur || "application/octet-stream", upsert: false }).then(function (u) {
+            if (v.sabit) yol = v.klasor + "/" + v.ad;          // hep aynı dosya: eskisi silinip yerine yazılır
+            return (v.sabit ? eskiyiSil(v.panel, yol) : Promise.resolve()).then(function () {
+              return sb.storage.from(KOVA).upload(yol, v.veri, { contentType: v.tur || "application/octet-stream", upsert: false }).then(function (u) {
               if (u.error) throw u.error;
               return sb.from(DTABLO).insert({ panel: v.panel, ad: v.ad, yol: yol, boyut: v.boyut, ozet: v.ozet, yukleyen: EPOSTA, tarih: v.tarih }).then(function (r2) {
                 if (r2.error && r2.error.code === "23505") return sb.storage.from(KOVA).remove([yol]);   // aynı anda başka yerden yüklenmiş
                 if (r2.error) { sb.storage.from(KOVA).remove([yol]); throw r2.error; }
-                if (v.panel !== "otoyedek") biten.push(v.ad); else otoTemizle();
+                if (v.panel !== "otoyedek") biten.push(v.ad);
               });
-            }).then(function () { return kuyruk("sil", x.k); });
+            }); }).then(function () { return kuyruk("sil", x.k); });
           });
         });
       }, Promise.resolve());
@@ -786,10 +788,10 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
 
   /* ---------------- otomatik JSON yedeği ----------------
      Sunucuya bir değişiklik gittiğinde, bütün panellerin anlık JSON kopyası
-     panel-dosyalar/yedek/json klasörüne yazılır. Art arda değişikliklerde her
-     tuşta dosya oluşmasın diye: son değişiklikten 2 dk sonra alınır, iki yedek
-     arasında en az 30 dk olur, en yeni 20 yedek saklanır, eskiler silinir. */
-  var OTO_BEKLE = 2 * 60000, OTO_ARALIK = 30 * 60000, OTO_SAKLA = 20, otoZaman = null;
+     panel-dosyalar/yedek/json/panel-verileri.json dosyasının ÜZERİNE yazılır
+     (tek dosya). Art arda değişikliklerde her tuşta yazılmasın diye son
+     değişiklikten 1 dk sonra alınır, iki yazım arasında en az 5 dk olur. */
+  var OTO_BEKLE = 60000, OTO_ARALIK = 5 * 60000, otoZaman = null;
   function otoSon() { try { return +(localStorage.getItem("__otoYedekSon") || 0); } catch (e) { return 0; } }
   function otoYedekPlanla() {
     clearTimeout(otoZaman);
@@ -801,17 +803,18 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
     window.__anlikGoruntu().then(function (g) {
       var f = new File([JSON.stringify(g)], "panel-verileri.json", { type: "application/json" });
       try { localStorage.setItem("__otoYedekSon", String(Date.now())); } catch (e) {}
-      return window.__dosyaYedekle("otoyedek", f, "yedek/json");
+      return window.__dosyaYedekle("otoyedek", f, "yedek/json", true);
     }).catch(function () {});
   }
-  function otoTemizle() {
-    sb.from(DTABLO).select("id,yol").eq("panel", "otoyedek").order("tarih", { ascending: false }).then(function (r) {
-      var eski = (r.data || []).slice(OTO_SAKLA);
-      if (!eski.length) return;
-      return sb.storage.from(KOVA).remove(eski.map(function (x) { return x.yol; })).then(function () {
-        return sb.from(DTABLO).delete().in("id", eski.map(function (x) { return x.id; }));
+  /* aynı paneldeki önceki kopyalar (eski tarihli adlarla kalanlar dahil) silinir */
+  function eskiyiSil(panel, yol) {
+    return sb.from(DTABLO).select("id,yol").eq("panel", panel).then(function (r) {
+      if (r.error) throw r.error;
+      var l = r.data || [];
+      return sb.storage.from(KOVA).remove(l.map(function (x) { return x.yol; }).concat([yol])).then(function () {
+        if (l.length) return sb.from(DTABLO).delete().in("id", l.map(function (x) { return x.id; }));
       });
-    }).catch(function () {});
+    });
   }
   window.__otoYedekAl = otoYedekAl;
 
