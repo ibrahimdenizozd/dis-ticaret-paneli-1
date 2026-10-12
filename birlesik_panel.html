@@ -14,7 +14,7 @@
   }
   header {
     flex: 0 0 auto; background: #1f3b57; color: #fff;
-    padding: 0 14px; display: flex; align-items: center; gap: 18px;
+    padding: 0 14px; display: flex; align-items: center; gap: 8px;
     box-shadow: 0 1px 4px rgba(0,0,0,.25); z-index: 2;
   }
   header h1 { font-size: 14.5px; font-weight: 600; margin: 0; padding: 12px 0;
@@ -31,20 +31,20 @@
   nav::-webkit-scrollbar { display: none; }
   .tab {
     background: transparent; border: 0; border-bottom: 3px solid transparent;
-    color: #c7d6e4; font: inherit; font-size: 13px; padding: 13px 12px 10px;
+    color: #d5e1ec; font: inherit; font-size: 14.5px; padding: 13px 12px 10px;
     cursor: pointer; white-space: nowrap; flex: 0 0 auto;
   }
   /* Pencere daraldıkça önce başlık, sonra durum yazısı, sonra logo çekilir;
      sekmeler en son ve en az kısılır.                                     */
   @media (max-width: 1500px) {
-    .tab { padding: 13px 9px 10px; font-size: 12.5px; }
-    .icon-btn { padding: 4px 8px; margin-left: 6px; }
+    .tab { padding: 13px 9px 10px; font-size: 14px; }
+    .icon-btn { padding: 5px 9px; margin-left: 0; }
   }
   @media (max-width: 1320px) { header h1 { display: none; } }
   @media (max-width: 1150px) { #kayitDurum { display: none; } }
   @media (max-width: 1000px) {
     .marka .logo { display: none; }
-    .tab { padding: 13px 7px 10px; font-size: 12px; }
+    .tab { padding: 13px 7px 10px; font-size: 13px; }
   }
   /* ---- Mobil (≤ 768 px) ---- */
   @media (max-width: 768px) {
@@ -78,8 +78,8 @@
   .spacer { margin-left: auto; }
   .icon-btn {
     background: transparent; border: 1px solid rgba(255,255,255,.3); color: #c7d6e4;
-    border-radius: 4px; font: inherit; font-size: 12px; padding: 4px 10px;
-    cursor: pointer; margin-left: 8px;
+    border-radius: 4px; font: inherit; font-size: 13.5px; padding: 5px 11px;
+    cursor: pointer; margin-left: 0;
   }
   .icon-btn:hover { color: #fff; border-color: #fff; }
   main { flex: 1 1 auto; position: relative; }
@@ -406,7 +406,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   /* ---------------- üst çubuk: durum + çıkış ---------------- */
   var stil = document.createElement("style");
   stil.textContent =
-    "#bulutDurum{font-size:11.5px;color:#c7d6e4;margin-left:10px;white-space:nowrap;cursor:default}" +
+    "#bulutDurum{font-size:13px;color:#c7d6e4;margin:0 6px 0 10px;white-space:nowrap;cursor:default}" +
     "#bulutDurum.uyari{color:#ffcf7a}#bulutDurum.hata{color:#ff9b9b}" +
     "#bulutGiris{position:fixed;inset:0;z-index:9999;background:#1f3b57;display:flex;align-items:center;justify-content:center;font:14px/1.45 'Segoe UI',system-ui,sans-serif}" +
     "#bulutGiris form{background:#fff;color:#1b1f24;width:min(380px,92vw);padding:26px 26px 20px;border-radius:10px;box-shadow:0 10px 40px rgba(0,0,0,.35)}" +
@@ -432,7 +432,10 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   var bant = document.createElement("div"); bant.id = "bulutBant"; document.body.appendChild(bant);
 
   function durum(t, sinif, ipucu) {
-    durumEl.textContent = t; durumEl.className = sinif || ""; durumEl.title = ipucu || "";
+    durumEl.textContent = t; durumEl.className = sinif || ""; durumEl.title = ipucu || t;
+    /* dar ekranda "Kaydedildi" kelimesi ve tarih gizlenir (saat kalır); tam hali üzerine gelince görünür */
+    var m = /^☁ Kaydedildi (\d{2}\.\d{2}\.\d{4}) (.+)$/.exec(t);
+    if (m) durumEl.innerHTML = '☁ <span class="uz">Kaydedildi </span><span class="trh">' + m[1] + ' </span>' + m[2];
   }
   function saat() {
     return new Date().toLocaleString("tr-TR", { day: "2-digit", month: "2-digit", year: "numeric",
@@ -783,7 +786,9 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
     var st = document.createElement("style");
     st.textContent = "#kayitTum,#kayitGeri,#bulutDosyalar,#temaUst,#bulutCikis,#reload{white-space:nowrap}" +
       "html.koyuTema body,html.koyuTema main{background:#14181d}" +
-      "@media(max-width:1600px){header h1{display:none !important}header .icon-btn{padding:4px 7px;margin-left:4px}#bulutDurum{font-size:11px;margin-left:6px}}";
+      "@media(max-width:1500px){.tab{padding:13px 7px 10px !important;font-size:13.5px !important}header .icon-btn{font-size:13px;padding:4px 7px}#bulutDurum .uz{display:none}}" +
+      "@media(max-width:1400px){#bulutDurum .trh{display:none}}" +
+      "@media(max-width:1600px){.tab{padding-left:9px;padding-right:9px}header h1{display:none !important}header .icon-btn{padding:5px 8px;margin-left:0}#bulutDurum{font-size:12.5px;margin-left:6px}}";
     document.head.appendChild(st);
   }
 
