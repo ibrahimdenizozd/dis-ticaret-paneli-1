@@ -1024,6 +1024,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
     "#yukPen b{display:block;font-size:15px;margin-bottom:4px}#yukPen .ad{color:#5b6876;font-size:12.5px;word-break:break-all;margin-bottom:14px}" +
     "#yukPen .ray{height:10px;background:#e6ebf0;border-radius:6px;overflow:hidden}" +
     "#yukPen .cub{height:100%;width:100%;background:linear-gradient(90deg,#2E9E57,#3F7FD1);transform-origin:left;transform:scaleX(.03);animation:ykIlerle 25s cubic-bezier(.1,.7,.2,1) forwards}" +
+    "#yukPen .tamam{display:block;margin:14px 0 0 auto;padding:6px 18px;border:0;border-radius:6px;background:#1f3b57;color:#fff;font:inherit;font-weight:600;cursor:pointer}" +
     "#yukPen.bitti .cub{animation:none;transform:scaleX(1);transition:transform .25s}#yukPen.hata .cub{background:#C62828}#yukPen.bitti .k{cursor:pointer}" +
     "#yukPen .alt{margin-top:8px;font-size:12px;color:#5b6876;display:flex;justify-content:space-between}" +
     "@keyframes ykIlerle{to{transform:scaleX(.92)}}";
@@ -1036,7 +1037,11 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
     p.classList.add("bitti"); if (hata) p.classList.add("hata");
     p.querySelector("b").textContent = hata ? "Yükleme tamamlanamadı" : "Güncelleme tamamlandı";
     var alt = p.querySelector(".alt span"); if (alt) alt.textContent = mesaj || "Excel yüklendi, panel güncellendi.";
-    var sure = hata ? 6000 : 2500;
+    var sure = hata ? 8000 : 4000;
+    if (!p.querySelector(".tamam")) {
+      var t = document.createElement("button"); t.className = "tamam"; t.textContent = "Tamam";
+      p.querySelector(".k").appendChild(t);
+    }
     p.onclick = function () { p.remove(); };
     setTimeout(function () { p.remove(); if (ykPen === p) ykPen = null; }, sure);
   }
