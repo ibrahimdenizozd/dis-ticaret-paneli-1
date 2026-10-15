@@ -75,6 +75,25 @@
   .tab[data-panel="tev"]:hover { background: #9B59B6; }
   .tab[data-panel="diibtool"]:hover { background: #D2603C; }
   .tab.active { color: #fff; border-bottom-color: #ffb547; font-weight: 600; }
+  /* "Diğer" menüsü: üzerine gelince TEV ve Mal Tanımı açılır */
+  .diger-btn {
+    background: transparent; border: 0; border-bottom: 3px solid transparent;
+    color: #d5e1ec; font: inherit; font-size: 14.5px; padding: 13px 12px 10px;
+    cursor: pointer; white-space: nowrap; flex: 0 0 auto;
+  }
+  .diger-btn:hover, .diger-wrap.acik .diger-btn { color: #fff; background: rgba(255,255,255,.08); }
+  .diger-btn.active { color: #fff; border-bottom-color: #ffb547; font-weight: 600; }
+  .diger-menu {
+    display: none; position: fixed; z-index: 400; min-width: 230px;
+    background: #1f3a52; border: 1px solid rgba(255,255,255,.18); border-radius: 0 0 6px 6px;
+    box-shadow: 0 10px 24px rgba(0,0,0,.35); padding: 4px 0;
+  }
+  .diger-wrap.acik .diger-menu { display: block; }
+  .diger-menu .tab {
+    display: block; width: 100%; text-align: left; border-bottom: 0;
+    border-left: 3px solid transparent; padding: 10px 16px;
+  }
+  .diger-menu .tab.active { border-left-color: #ffb547; }
   .spacer { margin-left: auto; }
   .icon-btn {
     background: transparent; border: 1px solid rgba(255,255,255,.3); color: #c7d6e4;
@@ -1351,6 +1370,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
       t.classList.toggle("active", t.dataset.panel === id);
     });
     aktif = id;
+    if (window.__digerGuncelle) window.__digerGuncelle(id);
     try { window.localStorage.setItem("__panel_aktif", id); } catch (e) {}
   }
   /* çevrimiçi eşitleme başka bilgisayardan gelen veriyle paneli tazeleyebilsin */
@@ -1418,6 +1438,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
       if (si < ti) nav.insertBefore(src, t.nextSibling); else nav.insertBefore(src, t);
       nav.querySelectorAll(".tab").forEach(function (x) { x.classList.remove("drag-over"); });
       kaydet();
+      if (window.__digerYerlestir) window.__digerYerlestir();
     });
 
     /* Sekmelere draggable ekle — yalnızca dokunmatik olmayan cihazlarda
@@ -1428,6 +1449,42 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
     }
     /* Kaydedilmiş sırayı uygula */
     sirala();
+
+    /* "Diğer" menüsü: TEV Tablosu ve Mal Tanımı Düzenleyici bu menüye taşınır */
+    var DIGER = ["tev", "diibtool"];
+    var wrap = document.createElement("div"); wrap.className = "diger-wrap";
+    wrap.innerHTML = '<button type="button" class="diger-btn">Diğer ▾</button><div class="diger-menu"></div>';
+    var menu = wrap.querySelector(".diger-menu"), dbtn = wrap.querySelector(".diger-btn");
+    nav.appendChild(wrap);
+    function yerlestir() {
+      DIGER.forEach(function (id) {
+        var t = nav.querySelector('.tab[data-panel="' + id + '"]');
+        if (t) { t.draggable = false; menu.appendChild(t); }
+      });
+      nav.appendChild(wrap);
+    }
+    yerlestir();
+    var kapanis = null;
+    function ac() {
+      clearTimeout(kapanis);
+      var r = dbtn.getBoundingClientRect();
+      menu.style.left = Math.min(r.left, window.innerWidth - 240) + "px";
+      menu.style.top = r.bottom + "px";
+      wrap.classList.add("acik");
+    }
+    function kapat() { kapanis = setTimeout(function () { wrap.classList.remove("acik"); }, 180); }
+    wrap.addEventListener("mouseenter", ac);
+    wrap.addEventListener("mouseleave", kapat);
+    dbtn.addEventListener("click", function (e) {
+      e.stopPropagation();
+      if (wrap.classList.contains("acik")) wrap.classList.remove("acik"); else ac();
+    });
+    menu.addEventListener("click", function () { wrap.classList.remove("acik"); });
+    document.addEventListener("click", function (e) { if (!wrap.contains(e.target)) wrap.classList.remove("acik"); });
+    window.addEventListener("resize", function () { wrap.classList.remove("acik"); });
+    window.__digerGuncelle = function (id) { dbtn.classList.toggle("active", DIGER.indexOf(id) > -1); };
+    window.__digerYerlestir = yerlestir;
+    try { if (typeof aktif !== "undefined" && aktif) window.__digerGuncelle(aktif); } catch (e) {}
   })();
 
   document.getElementById("nav").addEventListener("click", function (e) {
