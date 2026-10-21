@@ -1,0 +1,524 @@
+<title>Waxman Fiyat Arşivi</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: tek kolon — üstte özet şerit ve düzenleme çubuğu, altında grafik, matris tablolar ve liste arşivi */
+:root{
+  --bg:#f7f8fa; --surface:#ffffff; --surface-2:#eef1f5; --line:#d8dee6;
+  --fg:#15202b; --fg-2:#5a6878;
+  --accent:#0d5c63; --accent-soft:#d8ebec;
+  --up:#a8322a; --up-soft:#f7e3e1; --down:#1d6b45; --down-soft:#dcefe4; --flat:#8a95a3;
+  --edit:#8a5a00; --edit-soft:#fbf0d9;
+  --display:'Archivo',system-ui,sans-serif;
+  --body:'IBM Plex Sans',system-ui,sans-serif;
+  --mono:'IBM Plex Mono',ui-monospace,monospace;
+}
+:root[data-theme="dark"]{
+  --bg:#0e1419; --surface:#161e25; --surface-2:#1e272f; --line:#2c3843;
+  --fg:#e6ecf2; --fg-2:#94a3b1;
+  --accent:#49b3ba; --accent-soft:#113037;
+  --up:#e8796c; --up-soft:#3a1f1d; --down:#5fc091; --down-soft:#15311f; --flat:#6d7b89;
+  --edit:#e0b457; --edit-soft:#33280f;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:14px;line-height:1.5;margin:0}
+.wrap{max-width:1180px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:28px 56px}
+h1,h2,h3{font-family:var(--display);text-wrap:balance;margin:0}
+h1{font-size:clamp(24px,4.4vw,34px);font-weight:700;letter-spacing:-.02em}
+h2{font-size:18px;font-weight:600;letter-spacing:-.01em}
+.sub{color:var(--fg-2);margin:8px 0 0;max-width:62ch}
+.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);font-weight:500}
+header{border-bottom:1px solid var(--line);padding-bottom:22px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:6px;overflow:hidden;margin-top:22px}
+.stat{background:var(--surface);padding:12px 14px}
+.stat .k{font-family:var(--mono);font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--fg-2)}
+.stat .v{font-family:var(--display);font-size:21px;font-weight:600;font-variant-numeric:tabular-nums;margin-top:3px}
+.stat .v small{font-size:12px;font-weight:500;color:var(--fg-2)}
+section{margin-top:38px}
+.shead{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+.shead p{margin:0;color:var(--fg-2);font-size:12.5px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:8px}
+.btn{font-family:var(--body);font-size:12px;padding:6px 12px;border:1px solid var(--line);border-radius:6px;background:var(--surface);color:var(--fg-2);cursor:pointer}
+.btn:hover{border-color:var(--accent);color:var(--fg)}
+.btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.warn{color:var(--edit);border-color:var(--edit)}
+.bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:16px;padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface)}
+.bar.editing{border-color:var(--edit);background:var(--edit-soft)}
+.bar .spacer{flex:1}
+.saved{font-family:var(--mono);font-size:11px;color:var(--fg-2)}
+.pills{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+.pill{font-family:var(--mono);font-size:11.5px;padding:5px 10px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--fg-2);cursor:pointer;display:flex;align-items:center;gap:6px}
+.pill:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.pill .dot{width:9px;height:9px;border-radius:50%;background:currentColor;opacity:.35}
+.pill.on{color:var(--fg);border-color:var(--accent);background:var(--accent-soft)}
+.pill.on .dot{opacity:1}
+.chartbox{padding:14px 10px 6px}
+svg{display:block;width:100%;height:auto;max-width:100%}
+.scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+table{border-collapse:collapse;font-size:12.5px;width:100%;min-width:900px}
+th,td{border-bottom:1px solid var(--line);padding:7px 9px;text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+thead th{position:sticky;top:0;background:var(--surface-2);font-family:var(--mono);font-size:10.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--fg-2);font-weight:500;z-index:2}
+th.name,td.name{text-align:left;position:sticky;left:0;background:var(--surface);z-index:1;font-family:var(--body);font-weight:500;min-width:180px}
+thead th.name{background:var(--surface-2);z-index:3}
+tbody tr:hover td{background:var(--surface-2)}
+tbody tr:hover td.name{background:var(--surface-2)}
+td .num{font-family:var(--mono);font-weight:500}
+td.na{color:var(--flat)}
+.chg{font-family:var(--mono);font-size:10px;display:block;margin-top:1px}
+.up{color:var(--up)} .down{color:var(--down)} .flat{color:var(--flat)}
+td.hl-up{background:var(--up-soft)} td.hl-down{background:var(--down-soft)}
+tbody tr:hover td.hl-up{background:var(--up-soft)} tbody tr:hover td.hl-down{background:var(--down-soft)}
+.tag{font-family:var(--mono);font-size:9.5px;letter-spacing:.04em;text-transform:uppercase;color:var(--fg-2);border:1px solid var(--line);border-radius:3px;padding:1px 5px;margin-left:6px;vertical-align:1px;background:none}
+.tag[data-note],.tag.ed{cursor:pointer}
+.tag[data-note]:hover,.tag[data-note]:focus-visible,.tag.ed:hover{border-color:var(--accent);color:var(--accent)}
+.tag.ed{color:var(--edit);border-color:var(--edit)}
+.tip{position:fixed;z-index:50;max-width:min(320px,calc(100vw - 16px));background:var(--surface);color:var(--fg);border:1px solid var(--line);border-radius:7px;padding:9px 12px;font-size:12.5px;line-height:1.45;box-shadow:0 8px 24px rgba(0,0,0,.18);pointer-events:none}
+input.cell,input.tin,input.nin{font-family:var(--mono);font-size:12px;background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:4px;padding:3px 5px;text-align:right;width:68px}
+input.nin{font-family:var(--body);text-align:left;width:100%;min-width:150px}
+input.tin{font-family:var(--body);text-align:left;width:150px}
+input.cell:focus,input.nin:focus,input.tin:focus,textarea:focus,input.dt:focus{outline:2px solid var(--accent);outline-offset:1px}
+input.dt{font-family:var(--mono);font-size:11px;background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:4px;padding:2px 4px}
+.rowbtn{opacity:0;transition:opacity .12s}
+tr:hover .rowbtn,th:hover .rowbtn,.rowbtn:focus-visible,.rowbtn.armed{opacity:1}
+@media (pointer:coarse){.rowbtn{opacity:.45}}
+td[data-cell],th[data-cell]{cursor:cell}
+td[data-cell="name"],td[data-cell="extra"]{cursor:text}
+.del{font-family:var(--mono);font-size:10px;color:var(--fg-2);border:1px solid var(--line);background:var(--surface);border-radius:3px;padding:0 4px;cursor:pointer;margin-left:6px}
+.del:hover{color:var(--up);border-color:var(--up)}
+.del.armed{color:#fff;background:var(--up);border-color:var(--up)}
+.addrow{display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:10px 12px;border-top:1px solid var(--line);background:var(--surface-2)}
+.addrow label{font-family:var(--mono);font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--fg-2)}
+.panel{border:1px solid var(--edit);background:var(--edit-soft);border-radius:8px;padding:12px 14px;margin-bottom:12px}
+.panel h3{font-size:13.5px;margin-bottom:8px}
+textarea{width:100%;min-height:76px;font-family:var(--body);font-size:13px;background:var(--surface);color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:8px 10px;resize:vertical}
+.panel .acts{display:flex;gap:8px;margin-top:8px}
+.note{font-size:12px;color:var(--fg-2);margin-top:10px}
+.note b{color:var(--fg)}
+.arch{display:flex;flex-direction:column}
+.arch .it{display:grid;grid-template-columns:104px 1fr;gap:12px;padding:10px 14px;border-bottom:1px solid var(--line);align-items:start}
+.arch .it:last-child{border-bottom:0}
+.arch .dt{font-family:var(--mono);font-size:11.5px;color:var(--accent);font-weight:500;padding-top:2px}
+.arch .tx{font-size:12.5px;color:var(--fg-2)}
+.arch .tx b{color:var(--fg);font-weight:600}
+footer{margin-top:44px;padding-top:18px;border-top:1px solid var(--line);font-size:11.5px;color:var(--fg-2)}
+.io{margin-top:12px}
+.io textarea{min-height:110px;font-family:var(--mono);font-size:11px}
+@media (max-width:560px){
+  .arch .it{grid-template-columns:1fr;gap:3px}
+  th.name,td.name{min-width:150px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+
+<div class="wrap">
+<header>
+  <div class="eyebrow">Waxman Fibres · Waxman Speciality Products</div>
+  <h1>Fiyat Arşivi</h1>
+  <p class="sub">Filidea'ya gönderilen Waxman fiyat listeleri tek tabloda. Fiyatlar, notlar ve listeler elle düzenlenebilir; yeni liste geldiğinde kolon ekleyip fiyatları girmen yeterli.</p>
+  <div class="stats" id="stats"></div>
+  <div class="bar" id="bar">
+    <span class="saved">Değiştirmek için hücreye çift tıkla · satırın üzerine gelince not ve silme düğmeleri çıkar</span>
+    <span class="spacer"></span>
+    <span class="saved" id="saved"></span>
+  </div>
+</header>
+
+<section>
+  <div class="shead">
+    <div><h2>Fiyat seyri</h2><p>Kanecaron · EX JAPAN direkt sevkiyat · € / kg</p></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+      <div style="display:flex;border:1px solid var(--line);border-radius:6px;overflow:hidden" id="chartMode">
+        <button class="btn" data-m="abs" style="border:0;border-radius:0;background:var(--accent);color:#fff">€/kg</button>
+        <button class="btn" data-m="idx" style="border:0;border-left:1px solid var(--line);border-radius:0">Endeks (ilk=100)</button>
+      </div>
+      <button class="btn" id="lblBtn" aria-pressed="true">Etiketler: açık</button>
+      <button class="btn" id="clrBtn">Seçimi temizle</button>
+    </div>
+  </div>
+  <div class="pills" id="pills"></div>
+  <div class="card chartbox"><div id="chart"></div></div>
+  <p class="note">Grafiğe eklemek için yukarıdaki ürün rozetlerine tıkla.</p>
+</section>
+
+<section>
+  <div class="shead">
+    <div><h2>Kanecaron fiyat matrisi</h2><p>EX JAPAN · € / kg · UK stok fiyatları listelerde çoğunlukla "poa"</p></div>
+    <button class="btn" id="csvBtn">Tabloyu CSV olarak kopyala</button>
+  </div>
+  <div id="noteEd_eur"></div>
+  <div class="card"><div class="scroll"><table id="tbl_eur"></table></div><div id="add_eur"></div></div>
+  <p class="note" id="mnote"></p>
+</section>
+
+<section>
+  <div class="shead"><div><h2>Speciality Products</h2><p>Viskon ve polyester elyaf · USD / kg</p></div></div>
+  <div id="noteEd_usd"></div>
+  <div class="card"><div class="scroll"><table id="tbl_usd"></table></div><div id="add_usd"></div></div>
+</section>
+
+<section>
+  <div class="shead"><div><h2>Liste arşivi</h2><p>Her listenin kapsamı ve üzerindeki notlar</p></div></div>
+  <div class="card arch" id="arch"></div>
+</section>
+
+<footer>Kaynak: Waxman Fibres Ltd ve Waxman Speciality Products Ltd tarafından Filidea Tekstil San. ve Tic. A.Ş.'ye gönderilen fiyat listeleri. Fiyatlar listelerdeki "Updated" tarihine göre sıralanmıştır.</footer>
+</div>
+
+<script>
+const KEY="waxman-fiyat-arsivi-v1";
+const PALETTE=["#0d5c63","#b4642a","#4b5bbf","#8a3d8f","#1f6f8b","#6d7b89","#2f8f6b","#3f4a55","#7a4ea8","#a07c1f","#9b4722","#5f7d4a","#b0558a","#2a6ea8","#4f7a2f","#8b4b4b"];
+
+const DEFAULT={
+ eur:{
+  cols:[
+   {d:"2023-03-30",note:"PQ61 Dope Dyed için 9.54 özel teklif fiyatı ayrıca belirtilmiş. PC 1.9x38 özel ihale: 7.08."},
+   {d:"2023-05-11",note:"Temmuz sevkiyatlarından geçerli. Protex A, PQ ve PC zamlandı; PF 8.11'e çıktı."},
+   {d:"2023-06-13",note:"Temmuz sevkiyatları. Tek fark: PF Antimony free 8.11 → 7.90'a geri çekildi."},
+   {d:"2023-11-07",note:"PQ61 Dope Dyed 10.15 → 8.49'a indi (listede 'UPDATED NOV 2023')."},
+   {d:"2024-10-16",note:"Ocak 2025 sevkiyatlarından geçerli. Liste yeniden düzenlendi: PQ61 Navy / PQ10 Black ayrıştı, SI ve SYS eklendi, SW ve Protex A son kez göründü. PC for Milliken özel ihale 7.08 (Aralık 2024 sonuna kadar geçerli)."},
+   {d:"2025-04-08",note:"Sadece dope dyed kalemler için ara liste: PQ61 Navy ve PQ10 Black 8.80."},
+   {d:"2025-04-23",note:"Nisan–Haziran sevkiyatları. PQ 8.21 → 9.61, PC 7.92 → 8.58. PF Antimony free fiyatı 'TBC' olarak boş bırakılmış. PX 1.9x38 listeye girdi."},
+   {d:"2025-05-20",note:"Önceki listeyle aynı; sadece PF Antimony free 8.90 olarak netleşti."},
+   {d:"2025-07-10",note:"Ağustos–Eylül sevkiyatları. Genel zam. PF için Ekim–Aralık sevkiyatlarına özel 7.90 fiyatı ayrıca verildi."},
+   {d:"2025-12-19",note:"Ocak–Mart 2026 üretim/sevkiyatı. En yüksek seviyeler: PQ 11.85, PC 10.22. PQ61 Navy artık 'Klopman project' fiyatı (11.60). PH Antimony free 6.10 ile listeye girdi."},
+   {d:"2026-03-12",note:"Nisan–Haziran üretim/sevkiyatı. PQ ve PC bir miktar geri geldi. Klopman PQ61 11.60 → 9.20. SI, Ecru ve 14 Black olarak ikiye ayrıldı."},
+   {d:"2026-10-16",note:"Kasım üretim/sevkiyatından geçerli. Fiyatlara mevcut sürşarjlar dahil edilmiş. SBY 2.2x38 özel fiyatla 3.75'e indi; diğer kalemlerde artış."}
+  ],
+  rows:[
+   {n:"PQ 1.7x38",c:"#0d5c63",t:"",v:{"2023-03-30":7.66,"2023-05-11":7.90,"2023-06-13":7.90,"2023-11-07":7.90,"2024-10-16":8.21,"2025-04-23":9.61,"2025-05-20":9.61,"2025-07-10":10.11,"2025-12-19":11.85,"2026-03-12":11.45,"2026-10-16":11.55}},
+   {n:"PC 1.9x38",c:"#b4642a",t:"2023 listelerinde ayrıca 7.08 özel ihale fiyatı (2024'te 'PC for Milliken').",v:{"2023-03-30":7.38,"2023-05-11":7.61,"2023-06-13":7.61,"2023-11-07":7.61,"2024-10-16":7.92,"2025-04-23":8.58,"2025-05-20":8.58,"2025-07-10":9.08,"2025-12-19":10.22,"2026-03-12":9.73,"2026-10-16":9.89}},
+   {n:"PE 1.7x38",c:"#4b5bbf",t:"",v:{"2023-03-30":5.70,"2023-05-11":5.70,"2023-06-13":5.70,"2023-11-07":5.70,"2024-10-16":5.90,"2025-04-23":5.90,"2025-05-20":5.90,"2025-07-10":6.10,"2025-12-19":6.30,"2026-03-12":6.20,"2026-10-16":6.45}},
+   {n:"PF Antimony free",c:"#8a3d8f",t:"23.04.25 listesinde fiyat TBC. 10.07.25 ve 19.12.25 listelerinde standart fiyatın yanında 7.90 dönemsel fiyat da var.",v:{"2023-03-30":7.88,"2023-05-11":8.11,"2023-06-13":7.90,"2023-11-07":7.90,"2024-10-16":7.90,"2025-05-20":8.90,"2025-07-10":8.90,"2025-12-19":8.90,"2026-03-12":8.90,"2026-10-16":9.28}},
+   {n:"PQ61 Dope Dyed Navy",c:"#1f6f8b",t:"2023'te 9.54 özel ihale fiyatı mevcut. 19.12.25'ten itibaren 'Klopman project' özel fiyatı, rebate uygulanmıyor.",v:{"2023-03-30":10.15,"2023-05-11":10.15,"2023-06-13":10.15,"2023-11-07":8.49,"2024-10-16":8.80,"2025-04-08":8.80,"2025-04-23":8.80,"2025-05-20":8.80,"2025-07-10":9.30,"2025-12-19":11.60,"2026-03-12":9.20,"2026-10-16":9.45}},
+   {n:"SBY 2.2x38",c:"#6d7b89",t:"3,5 yıl boyunca 4.04'te sabit; 16.10.26'da özel fiyatla 3.75.",v:{"2023-03-30":4.04,"2023-05-11":4.04,"2023-06-13":4.04,"2023-11-07":4.04,"2024-10-16":4.04,"2025-04-23":4.04,"2025-05-20":4.04,"2025-07-10":4.04,"2025-12-19":4.04,"2026-03-12":4.04,"2026-10-16":3.75}},
+   {n:"SI / SI Ecru",c:"#2f8f6b",t:"UK stok fiyatı 5.37 (2024–2025). 12.03.26'dan itibaren Ecru ve 14 Black olarak ayrıldı.",v:{"2024-10-16":4.92,"2025-04-23":4.92,"2025-05-20":4.92,"2025-07-10":4.92,"2025-12-19":4.92,"2026-03-12":5.42,"2026-10-16":6.02}},
+   {n:"SI 14 Black",c:"#3f4a55",t:"",v:{"2026-03-12":5.92,"2026-10-16":6.52}},
+   {n:"PQ10 Dope Dyed Black",c:"#7a4ea8",t:"10.07.25'ten sonraki listelerde yer almıyor.",v:{"2024-10-16":8.80,"2025-04-08":8.80,"2025-04-23":8.80,"2025-05-20":8.80,"2025-07-10":9.30}},
+   {n:"PX 1.9x38",c:"#a07c1f",t:"UK stoktan temin edilemiyor (n/a).",v:{"2025-04-23":8.21,"2025-05-20":8.21,"2025-07-10":8.21,"2025-12-19":8.21}},
+   {n:"Protex A 1.7x38",c:"#9b4722",t:"16.10.24'ten sonraki listelerde yok.",v:{"2023-03-30":9.43,"2023-05-11":9.66,"2023-06-13":9.66,"2023-11-07":9.66,"2024-10-16":9.95}},
+   {n:"SW 2.2x38",c:"#5f7d4a",t:"2023 sonrası listelerde yok.",v:{"2023-03-30":4.24,"2023-05-11":4.24,"2023-06-13":4.24,"2023-11-07":4.24}},
+   {n:"SYS",c:"#b0558a",t:"Sadece 16.10.24 listesinde. UK stok 4.48.",v:{"2024-10-16":4.03}},
+   {n:"PH Antimony free",c:"#2a6ea8",t:"Sadece 19.12.25 listesinde.",v:{"2025-12-19":6.10}}
+  ]
+ },
+ usd:{
+  cols:[{d:"2022-10",note:""},{d:"2023-04",note:""},{d:"2023-05",note:""},{d:"2024-01",note:""},{d:"2024-09",note:""}],
+  rows:[
+   {n:"So FR Viscose ECRU 1.67dtx",term:"DAP İstanbul (5t karayolu)",c:"#0d5c63",t:"Eylül 2024 tarihli iki ayrı liste var: biri 9.15, diğeri 9.10. Tabloda daha düşük olan gösterildi.",v:{"2023-04":9.15,"2024-09":9.10}},
+   {n:"So FR Viscose ECRU 1.67dtx",term:"CFR İzmir (1x20ft ≈ 8t)",c:"#4b5bbf",t:"",v:{"2023-04":8.95,"2024-09":8.95}},
+   {n:"So Neutral Antistat 3.3dtx (siyah PES)",term:"DAP İstanbul · 100 kg üzeri",c:"#b4642a",t:"25 kg/koli, minimum sipariş 25 kg.",v:{"2023-05":73.70,"2024-01":71.05}},
+   {n:"So Comfort (phase change) viskon",term:"DAP İstanbul (≈3t)",c:"#8a3d8f",t:"Çin menşeli beyan edildiği için UK/Türkiye tercihli menşe uygulanmıyor.",v:{"2022-10":8.80}}
+  ]
+ }
+};
+
+let S=load();
+let mode="abs",showLabels=true;
+const sel=new Set();
+let noteOpen={eur:null,usd:null};
+
+function load(){
+ try{const r=localStorage.getItem(KEY);if(r){const o=JSON.parse(r);if(o&&o.eur&&o.usd)return o}}catch(e){}
+ return clone(DEFAULT);
+}
+function clone(o){return JSON.parse(JSON.stringify(o))}
+function save(){
+ try{localStorage.setItem(KEY,JSON.stringify(S));stamp("Kaydedildi "+new Date().toLocaleTimeString("tr-TR",{hour:"2-digit",minute:"2-digit"}));}
+ catch(e){stamp("Tarayıcıya kaydedilemedi — JSON yedeğini kullan");}
+}
+function stamp(t){document.getElementById("saved").textContent=t}
+
+const MON=["Oca","Şub","Mar","Nis","May","Haz","Tem","Ağu","Eyl","Eki","Kas","Ara"];
+function lab(d){
+ const p=d.split("-");
+ if(p.length===3)return p[2]+"."+p[1]+"."+p[0].slice(2);
+ return MON[(+p[1])-1]+" "+p[0].slice(2);
+}
+function sortCols(k){S[k].cols.sort((a,b)=>a.d<b.d?-1:a.d>b.d?1:0)}
+const fmt=n=>n==null?"–":Number(n).toFixed(2);
+const pct=(a,b)=>((b-a)/a*100);
+const fp=p=>(p>0?"+":"")+p.toFixed(1)+"%";
+const num=s=>{const v=parseFloat(String(s).replace(",","."));return isFinite(v)?v:null};
+const esc=s=>String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/"/g,"&quot;");
+const vdates=(k,r)=>S[k].cols.map(c=>c.d).filter(d=>r.v[d]!=null);
+
+/* ===== özet ===== */
+function renderStats(){
+ const c=S.eur.cols,allCols=[...S.eur.cols.map(x=>x.d),...S.usd.cols.map(x=>x.d)].sort();
+ const n=S.eur.rows.length+S.usd.rows.length;
+ document.getElementById("stats").innerHTML=[
+  ["Liste sayısı",(c.length+S.usd.cols.length)+" <small>adet</small>"],
+  ["Kapsanan dönem",allCols.length?lab(allCols[0])+" – "+lab(allCols[allCols.length-1]):"–"],
+  ["İzlenen kalem",n+" <small>satır</small>"],
+  ["Son Kanecaron listesi",c.length?lab(c[c.length-1].d):"–"]
+ ].map(([k,v])=>`<div class="stat"><div class="k">${k}</div><div class="v">${v}</div></div>`).join("");
+}
+
+/* ===== tablolar ===== */
+const DEFS={
+ eur:{el:"tbl_eur",add:"add_eur",ned:"noteEd_eur",extra:null,dtype:"date",unit:"€"},
+ usd:{el:"tbl_usd",add:"add_usd",ned:"noteEd_usd",extra:{f:"term",label:"Teslim şekli"},dtype:"month",unit:"$"}
+};
+
+function renderTable(k){
+ const D=DEFS[k],T=S[k];
+ sortCols(k);
+ let h="<thead><tr><th class='name'>Ürün</th>";
+ if(D.extra)h+=`<th style="text-align:left">${D.extra.label}</th>`;
+ T.cols.forEach((c,ci)=>{
+  h+=`<th data-k="${k}" data-col="${ci}" data-cell="col" title="Tarihi değiştirmek için çift tıkla">${lab(c.d)}<button class="rowbtn del" data-k="${k}" data-col="${ci}" data-act="delcol" title="Kolonu sil">×</button></th>`;
+ });
+ h+="</tr></thead><tbody>";
+ T.rows.forEach((r,ri)=>{
+  h+=`<tr><td class='name' data-k="${k}" data-row="${ri}" data-cell="name" title="Adı değiştirmek için çift tıkla">${esc(r.n)}`
+   +(r.t?`<span class="tag" tabindex="0" role="button" aria-label="Not" data-note="${esc(r.t)}">not</span>`:"")
+   +`<button class="rowbtn tag ed" data-k="${k}" data-row="${ri}" data-act="editnote" title="Notu düzenle">✎</button>`
+   +`<button class="rowbtn del" data-k="${k}" data-row="${ri}" data-act="delrow" title="Satırı sil">×</button></td>`;
+  if(D.extra)h+=`<td style="text-align:left;color:var(--fg-2)" data-k="${k}" data-row="${ri}" data-cell="extra">${esc(r[D.extra.f]||"")}</td>`;
+  let prev=null;
+  T.cols.forEach(c=>{
+   const v=r.v[c.d];
+   let cls="",inner;
+   if(v==null){cls="na";inner="·"}
+   else{
+    let chg="";
+    if(prev!=null){
+     const df=v-prev;
+     if(Math.abs(df)<0.005)chg=`<span class="chg flat">=</span>`;
+     else{const kk=df>0?"up":"down";cls="hl-"+kk;chg=`<span class="chg ${kk}">${(df>0?"+":"−")+Math.abs(df).toFixed(2)+" "+D.unit}</span>`}
+    }
+    inner=`<span class="num">${fmt(v)}</span>${chg}`;
+   }
+   h+=`<td class="${cls}" data-k="${k}" data-row="${ri}" data-d="${c.d}" data-cell="price">${inner}</td>`;
+   if(v!=null)prev=v;
+  });
+  h+="</tr>";
+ });
+ document.getElementById(D.el).innerHTML=h+"</tbody>";
+
+ document.getElementById(D.add).innerHTML=`
+  <div class="addrow">
+   <label>Yeni liste</label>
+   <input class="dt" type="${D.dtype}" id="nc_${k}">
+   <button class="btn" data-k="${k}" data-act="addcol">Kolon ekle</button>
+   <span style="width:14px"></span>
+   <label>Yeni ürün</label>
+   <input class="tin" id="nr_${k}" placeholder="Ürün adı">
+   ${D.extra?`<input class="tin" id="nx_${k}" placeholder="${D.extra.label}">`:""}
+   <button class="btn" data-k="${k}" data-act="addrow">Satır ekle</button>
+  </div>`;
+ renderNoteEd(k);
+}
+
+function renderNoteEd(k){
+ const box=document.getElementById(DEFS[k].ned);
+ const ri=noteOpen[k];
+ if(ri==null||!S[k].rows[ri]){box.innerHTML="";return}
+ const r=S[k].rows[ri];
+ box.innerHTML=`<div class="panel">
+  <h3>Not — ${esc(r.n)}</h3>
+  <textarea id="nt_${k}" spellcheck="false">${esc(r.t||"")}</textarea>
+  <div class="acts"><button class="btn primary" data-k="${k}" data-act="savenote">Notu kaydet</button><button class="btn" data-k="${k}" data-act="closenote">Kapat</button></div>
+ </div>`;
+}
+
+/* ===== arşiv ===== */
+function renderArch(){
+ document.getElementById("arch").innerHTML=S.eur.cols.map((c,ci)=>{
+  const n=S.eur.rows.filter(r=>r.v[c.d]!=null).length;
+  return `<div class="it"><div class="dt">${lab(c.d)}</div><div class="tx" data-k="eur" data-col="${ci}" data-cell="archnote" title="Düzenlemek için çift tıkla"><b>${n} kalem fiyatlandırıldı.</b> ${esc(c.note||"")}</div></div>`;
+ }).join("");
+}
+
+/* ===== grafik ===== */
+function renderPills(){
+ document.getElementById("pills").innerHTML=S.eur.rows.filter(r=>vdates("eur",r).length>1).map(r=>
+  `<button class="pill${sel.has(r.n)?" on":""}" data-n="${esc(r.n)}" aria-pressed="${sel.has(r.n)}"><span class="dot" style="color:${r.c}"></span>${esc(r.n)}</button>`).join("");
+}
+function draw(){
+ const W=980,H=430,ml=54,mr=26,mt=28,mb=58;
+ const cols=S.eur.cols,D=cols.map(c=>c.d);
+ const items=S.eur.rows.filter(r=>sel.has(r.n)&&vdates("eur",r).length>1).map(r=>{
+  const ds=vdates("eur",r),base=r.v[ds[0]];
+  return {r,series:ds.map(d=>({d,y:mode==="idx"?r.v[d]/base*100:r.v[d],raw:r.v[d]}))};
+ });
+ const ys=items.flatMap(i=>i.series.map(s=>s.y));
+ let mn=ys.length?Math.min(...ys):0,mx=ys.length?Math.max(...ys):1;
+ if(mn===mx){mn-=1;mx+=1}
+ const p=(mx-mn)*0.12;mn=Math.max(0,mn-p);mx+=p;
+ const t0=D.length?new Date(D[0]+(D[0].length===7?"-01":"")).getTime():0;
+ const t1=D.length?new Date(D[D.length-1]+(D[D.length-1].length===7?"-01":"")).getTime():1;
+ const X=d=>t1===t0?ml:ml+(new Date(d).getTime()-t0)/(t1-t0)*(W-ml-mr);
+ const Y=v=>mt+(1-(v-mn)/(mx-mn))*(H-mt-mb);
+ const step=niceStep((mx-mn)/5),ticks=[];
+ for(let v=Math.ceil(mn/step)*step;v<=mx+1e-9;v+=step)ticks.push(+v.toFixed(6));
+ let s=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Kanecaron fiyat seyri grafiği">`;
+ ticks.forEach(v=>{
+  s+=`<line x1="${ml}" y1="${Y(v).toFixed(1)}" x2="${W-mr}" y2="${Y(v).toFixed(1)}" stroke="var(--line)" stroke-width="1"/>`;
+  s+=`<text x="${ml-8}" y="${(Y(v)+4).toFixed(1)}" text-anchor="end" fill="var(--fg-2)" font-family="IBM Plex Mono,monospace" font-size="11">${mode==="idx"?v.toFixed(0):v.toFixed(2)}</text>`;
+ });
+ cols.forEach(c=>{
+  const x=X(c.d);
+  s+=`<line x1="${x.toFixed(1)}" y1="${mt}" x2="${x.toFixed(1)}" y2="${H-mb}" stroke="var(--line)" stroke-width="1" opacity="0.5"/>`;
+  s+=`<text x="${x.toFixed(1)}" y="${H-mb+16}" text-anchor="end" fill="var(--fg-2)" font-family="IBM Plex Mono,monospace" font-size="10" transform="rotate(-45 ${x.toFixed(1)} ${H-mb+16})">${lab(c.d)}</text>`;
+ });
+ s+=`<line x1="${ml}" y1="${H-mb}" x2="${W-mr}" y2="${H-mb}" stroke="var(--fg-2)" stroke-width="1"/>`;
+ s+=`<text x="${ml}" y="${H-10}" fill="var(--fg-2)" font-family="IBM Plex Mono,monospace" font-size="10">${mode==="idx"?"İlk liste = 100":"€ / kg · EX JAPAN"}</text>`;
+ items.forEach((i,k)=>{
+  const pts=i.series.map(s2=>`${X(s2.d).toFixed(1)},${Y(s2.y).toFixed(1)}`).join(" ");
+  s+=`<polyline points="${pts}" fill="none" stroke="${i.r.c}" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>`;
+  i.series.forEach(s2=>{s+=`<circle cx="${X(s2.d).toFixed(1)}" cy="${Y(s2.y).toFixed(1)}" r="3" fill="${i.r.c}"><title>${esc(i.r.n)} · ${lab(s2.d)} · ${s2.raw.toFixed(2)}</title></circle>`});
+  if(showLabels){
+   const above=k%2===0;
+   i.series.forEach(s2=>{
+    const x=X(s2.d),y=Y(s2.y);
+    let anchor="middle",dx=0;
+    if(x<ml+16){anchor="start";dx=-6}else if(x>W-mr-16){anchor="end";dx=6}
+    s+=`<text x="${(x+dx).toFixed(1)}" y="${(y+(above?-9:17)).toFixed(1)}" text-anchor="${anchor}" fill="${i.r.c}" stroke="var(--surface)" stroke-width="3.2" paint-order="stroke" stroke-linejoin="round" font-family="IBM Plex Mono,monospace" font-size="10" font-weight="600">${mode==="idx"?s2.y.toFixed(0):s2.raw.toFixed(2)}</text>`;
+   });
+  }
+ });
+ if(!items.length)s+=`<text x="${W/2}" y="${H/2}" text-anchor="middle" fill="var(--fg-2)" font-family="IBM Plex Sans,sans-serif" font-size="14">Görüntülemek için yukarıdan ürün seç</text>`;
+ document.getElementById("chart").innerHTML=s+"</svg>";
+}
+function niceStep(r){const e=Math.pow(10,Math.floor(Math.log10(r||1)));const m=(r||1)/e;return (m<1.5?1:m<3?2:m<7?5:10)*e}
+
+/* ===== render all ===== */
+function renderAll(){
+ renderStats();renderTable("eur");renderTable("usd");renderArch();renderPills();draw();
+ document.getElementById("mnote").innerHTML="<b>·</b> işareti o listede ürünün yer almadığını gösterir; fiyatı girmek için hücreye çift tıkla, hücreyi boşaltırsan yine <b>·</b> olur. Fiyatın altındaki tutar, ürünün <b>bir önceki geçtiği listeye</b> göre kg başına değişimidir. <b>not</b> etiketli satırlarda özel ihale / dönemsel fiyat ayrıntısı var — imleçle etiketin üzerine gel.";
+}
+
+/* ===== olaylar ===== */
+document.addEventListener("dblclick",e=>{
+ const cell=e.target.closest("[data-cell]");if(!cell||cell.querySelector("input,textarea"))return;
+ const k=cell.dataset.k,t=cell.dataset.cell,ri=cell.dataset.row;
+ if(t==="price"){
+  const v=S[k].rows[+ri].v[cell.dataset.d];
+  cell.className="";
+  cell.innerHTML=`<input class="cell" inputmode="decimal" value="${v==null?"":v}" data-k="${k}" data-row="${ri}" data-d="${cell.dataset.d}" data-act="price">`;
+ }else if(t==="name"){
+  cell.innerHTML=`<input class="nin" value="${esc(S[k].rows[+ri].n)}" data-k="${k}" data-row="${ri}" data-act="rowname">`;
+ }else if(t==="extra"){
+  cell.innerHTML=`<input class="tin" value="${esc(S[k].rows[+ri][DEFS[k].extra.f]||"")}" data-k="${k}" data-row="${ri}" data-act="rowextra">`;
+ }else if(t==="col"){
+  cell.innerHTML=`<input class="dt" type="${DEFS[k].dtype}" value="${S[k].cols[+cell.dataset.col].d}" data-k="${k}" data-col="${cell.dataset.col}" data-act="coldate">`;
+ }else if(t==="archnote"){
+  cell.innerHTML=`<textarea data-k="eur" data-col="${cell.dataset.col}" data-act="colnote" spellcheck="false">${esc(S.eur.cols[+cell.dataset.col].note||"")}</textarea>`;
+ }else return;
+ const inp=cell.querySelector("input,textarea");
+ if(inp){inp.focus();if(inp.select&&inp.type!=="date"&&inp.type!=="month")inp.select();}
+});
+document.addEventListener("keydown",e=>{
+ const a=e.target.dataset&&e.target.dataset.act;if(!a)return;
+ if(e.key==="Enter"&&e.target.tagName!=="TEXTAREA"){e.preventDefault();e.target.blur()}
+ if(e.key==="Escape")e.target.blur();
+});
+document.addEventListener("focusout",e=>{
+ const a=e.target.dataset&&e.target.dataset.act;
+ if(!a||!["price","rowname","rowextra","colnote"].includes(a))return;
+ const k=e.target.dataset.k;
+ setTimeout(()=>{
+  if(a==="colnote"){renderArch();return}
+  renderTable(k);
+  if(k==="eur"){renderStats();renderPills();draw()}
+ },0);
+});
+document.getElementById("clrBtn").addEventListener("click",()=>{sel.clear();renderPills();draw()});
+document.getElementById("lblBtn").addEventListener("click",function(){
+ showLabels=!showLabels;this.textContent="Etiketler: "+(showLabels?"açık":"kapalı");this.setAttribute("aria-pressed",showLabels);draw();
+});
+document.getElementById("chartMode").addEventListener("click",e=>{
+ const b=e.target.closest("button");if(!b)return;
+ mode=b.dataset.m;
+ [...e.currentTarget.children].forEach(x=>x.style.background=x===b?"var(--accent)":"var(--surface)");
+ [...e.currentTarget.children].forEach(x=>x.style.color=x===b?"#fff":"var(--fg-2)");
+ draw();
+});
+document.getElementById("pills").addEventListener("click",e=>{
+ const b=e.target.closest(".pill");if(!b)return;
+ const n=b.dataset.n;
+ if(sel.has(n))sel.delete(n);else sel.add(n);
+ b.classList.toggle("on");b.setAttribute("aria-pressed",sel.has(n));draw();
+});
+
+document.addEventListener("input",e=>{
+ const t=e.target,a=t.dataset.act;if(!a)return;
+ const k=t.dataset.k;
+ if(a==="price"){
+  const r=S[k].rows[+t.dataset.row],d=t.dataset.d,v=t.value.trim();
+  if(v==="")delete r.v[d];else{const n=num(v);if(n==null)return;r.v[d]=n}
+  save();if(k==="eur"){renderPills();draw()}
+ }else if(a==="rowname"){S[k].rows[+t.dataset.row].n=t.value;save();if(k==="eur"){renderPills();draw()}}
+ else if(a==="rowextra"){S[k].rows[+t.dataset.row][DEFS[k].extra.f]=t.value;save()}
+ else if(a==="colnote"){S[k].cols[+t.dataset.col].note=t.value;save()}
+});
+document.addEventListener("change",e=>{
+ const t=e.target;if(t.dataset.act!=="coldate")return;
+ const k=t.dataset.k,ci=+t.dataset.col,old=S[k].cols[ci].d,nd=t.value;
+ if(!nd||nd===old)return;
+ if(S[k].cols.some((c,i)=>i!==ci&&c.d===nd)){renderTable(k);return}
+ S[k].cols[ci].d=nd;
+ S[k].rows.forEach(r=>{if(r.v[old]!=null){r.v[nd]=r.v[old];delete r.v[old]}});
+ save();renderAll();
+});
+
+document.addEventListener("click",e=>{
+ const b=e.target.closest("[data-act]");if(!b||b.tagName==="INPUT"||b.tagName==="TEXTAREA")return;
+ const a=b.dataset.act,k=b.dataset.k;
+ if(a==="addcol"){
+  const d=document.getElementById("nc_"+k).value;
+  if(!d||S[k].cols.some(c=>c.d===d))return;
+  S[k].cols.push({d,note:""});save();renderAll();
+ }else if(a==="addrow"){
+  const n=document.getElementById("nr_"+k).value.trim();if(!n)return;
+  const row={n,c:PALETTE[S[k].rows.length%PALETTE.length],t:"",v:{}};
+  if(DEFS[k].extra)row[DEFS[k].extra.f]=document.getElementById("nx_"+k).value.trim();
+  S[k].rows.push(row);save();renderAll();
+ }else if(a==="delrow"||a==="delcol"){
+  if(b.classList.contains("armed")){
+   if(a==="delrow"){S[k].rows.splice(+b.dataset.row,1);noteOpen[k]=null}
+   else{const d=S[k].cols[+b.dataset.col].d;S[k].cols.splice(+b.dataset.col,1);S[k].rows.forEach(r=>delete r.v[d])}
+   save();renderAll();
+  }else{
+   document.querySelectorAll(".del.armed").forEach(x=>{x.classList.remove("armed");x.textContent="×"});
+   b.classList.add("armed");b.textContent="sil?";
+   setTimeout(()=>{b.classList.remove("armed");b.textContent="×"},3000);
+  }
+ }else if(a==="editnote"){noteOpen[k]=+b.dataset.row;renderNoteEd(k);document.getElementById("nt_"+k).focus();}
+ else if(a==="savenote"){S[k].rows[noteOpen[k]].t=document.getElementById("nt_"+k).value.trim();save();noteOpen[k]=null;renderTable(k);}
+ else if(a==="closenote"){noteOpen[k]=null;renderNoteEd(k);}
+});
+
+/* CSV */
+document.getElementById("csvBtn").addEventListener("click",function(){
+ const rows=[["Urun",...S.eur.cols.map(c=>lab(c.d))].join(";")];
+ S.eur.rows.forEach(r=>rows.push([r.n,...S.eur.cols.map(c=>r.v[c.d]!=null?String(r.v[c.d]).replace(".",","):"")].join(";")));
+ const txt=rows.join("\n"),btn=this;
+ const ok=()=>{btn.textContent="Kopyalandı";setTimeout(()=>btn.textContent="Tabloyu CSV olarak kopyala",1800)};
+ try{navigator.clipboard.writeText(txt).then(ok).catch(fb)}catch(e){fb()}
+ function fb(){const ta=document.createElement("textarea");ta.value=txt;document.body.appendChild(ta);ta.select();btn.textContent="Metni seçip kopyala";setTimeout(()=>{ta.remove();btn.textContent="Tabloyu CSV olarak kopyala"},6000)}
+});
+
+/* not balonu */
+(function(){
+ const tip=document.createElement("div");tip.className="tip";tip.hidden=true;document.body.appendChild(tip);
+ function show(el){
+  tip.textContent=el.dataset.note;tip.hidden=false;
+  const r=el.getBoundingClientRect(),tr=tip.getBoundingClientRect();
+  let x=Math.max(8,Math.min(r.left+r.width/2-tr.width/2,window.innerWidth-tr.width-8));
+  let y=r.top-tr.height-8;if(y<8)y=r.bottom+8;
+  tip.style.left=x+"px";tip.style.top=y+"px";
+ }
+ const hide=()=>tip.hidden=true;
+ document.addEventListener("mouseover",e=>{const t=e.target.closest(".tag[data-note]");if(t)show(t)});
+ document.addEventListener("mouseout",e=>{if(e.target.closest(".tag[data-note]"))hide()});
+ document.addEventListener("focusin",e=>{const t=e.target.closest(".tag[data-note]");t?show(t):hide()});
+ document.addEventListener("click",e=>{const t=e.target.closest(".tag[data-note]");if(t){tip.hidden?show(t):hide()}else hide()});
+ window.addEventListener("scroll",hide,true);
+})();
+
+renderAll();
+stamp("Hazır");
+</script>
