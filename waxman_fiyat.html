@@ -1,24 +1,15 @@
 <title>Waxman Fiyat Arşivi</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
 <style>
 /* Layout: tek kolon — üstte özet şerit ve düzenleme çubuğu, altında grafik, matris tablolar ve liste arşivi */
 :root{
-  --bg:#f7f8fa; --surface:#ffffff; --surface-2:#eef1f5; --line:#d8dee6;
-  --fg:#15202b; --fg-2:#5a6878;
-  --accent:#0d5c63; --accent-soft:#d8ebec;
-  --up:#a8322a; --up-soft:#f7e3e1; --down:#1d6b45; --down-soft:#dcefe4; --flat:#8a95a3;
-  --edit:#8a5a00; --edit-soft:#fbf0d9;
-  --display:'Archivo',system-ui,sans-serif;
-  --body:'IBM Plex Sans',system-ui,sans-serif;
-  --mono:'IBM Plex Mono',ui-monospace,monospace;
-}
-:root[data-theme="dark"]{
-  --bg:#0e1419; --surface:#161e25; --surface-2:#1e272f; --line:#2c3843;
-  --fg:#e6ecf2; --fg-2:#94a3b1;
-  --accent:#49b3ba; --accent-soft:#113037;
-  --up:#e8796c; --up-soft:#3a1f1d; --down:#5fc091; --down-soft:#15311f; --flat:#6d7b89;
-  --edit:#e0b457; --edit-soft:#33280f;
-  color-scheme:dark;
+  --bg:#EEF1F5; --surface:#ffffff; --surface-2:#F4F7FA; --line:#D5DCE4;
+  --fg:#1E2A36; --fg-2:#5A6875;
+  --accent:#1F3A5C; --accent-soft:#E3EAF3; --lacivert:#1F3A5C;
+  --up:#B03A2E; --up-soft:#FBE7E4; --down:#2E7D4F; --down-soft:#E6F3EA; --flat:#7D8A96;
+  --edit:#B7651B; --edit-soft:#FDF0E2;
+  --display:var(--sans,'IBM Plex Sans','Segoe UI',Arial,sans-serif);
+  --body:var(--sans,'IBM Plex Sans','Segoe UI',Arial,sans-serif);
+  --mono:var(--sans,'IBM Plex Sans','Segoe UI',Arial,sans-serif);
 }
 *{box-sizing:border-box}
 body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:14px;line-height:1.5;margin:0}
@@ -104,6 +95,42 @@ textarea{width:100%;min-height:76px;font-family:var(--body);font-size:13px;backg
 footer{margin-top:44px;padding-top:18px;border-top:1px solid var(--line);font-size:11.5px;color:var(--fg-2)}
 .io{margin-top:12px}
 .io textarea{min-height:110px;font-family:var(--mono);font-size:11px}
+
+/* --- diğer panellerle aynı görünüm (Teminat / İthalat listesi) --- */
+.wrap{max-width:none;margin:0;padding:18px 20px 60px}
+h1{font-size:22px;font-weight:700;letter-spacing:-.01em}
+.eyebrow{font-family:var(--body);font-size:12px;letter-spacing:.02em;text-transform:none;color:var(--fg-2);font-weight:600}
+header{border-bottom:0;padding-bottom:0}
+.sub{font-size:13.5px}
+.stats{border-radius:4px;margin-top:14px}
+.stat .k{font-family:var(--body);font-size:11.5px;letter-spacing:.02em;text-transform:none;font-weight:600}
+.stat .v{font-size:20px}
+.bar{border-radius:4px;margin-top:12px}
+.saved{font-family:var(--body);font-size:12px}
+section{margin-top:16px;background:var(--surface);border:1px solid var(--line);border-radius:4px}
+.shead{background:var(--lacivert);color:#fff;padding:10px 16px;border-radius:4px 4px 0 0;margin:0;align-items:center}
+.shead h2{font-size:14px;letter-spacing:.08em;text-transform:uppercase;font-weight:600;color:#fff}
+.shead p{color:#C7D6E4;font-size:12.5px;margin-top:2px}
+.shead .btn{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.35);color:#fff}
+.shead .btn:hover{background:rgba(255,255,255,.18);border-color:#fff;color:#fff}
+.shead #chartMode{border-color:rgba(255,255,255,.35)!important}
+.card{border:0;border-radius:0 0 4px 4px}
+.pills{padding:12px 16px 0;margin:0}
+.chartbox{padding:10px 16px 6px}
+section>.note,section>p.note{padding:0 16px 12px;margin:6px 0 0}
+.pill{font-family:var(--body);font-size:12.5px}
+table{font-size:13.5px;min-width:0}
+thead th{font-family:var(--body);font-size:12.5px;letter-spacing:0;text-transform:none;color:var(--fg);font-weight:600;background:var(--surface-2);border-bottom:2px solid var(--line)}
+td .num{font-family:var(--body);font-weight:600}
+.chg{font-family:var(--body);font-size:11px}
+.tag{font-family:var(--body);font-size:10.5px;text-transform:none;letter-spacing:0}
+.addrow label{font-family:var(--body);font-size:11.5px;text-transform:none;letter-spacing:.02em;font-weight:600}
+.del{font-family:var(--body);font-size:11px}
+input.cell,input.dt{font-family:var(--body)}
+.arch .dt{font-family:var(--body);font-size:12.5px;font-weight:600}
+.arch .tx{font-size:13px}
+.panel{border-radius:4px;margin:12px 16px}
+footer{margin-top:20px;border-top:0}
 @media (max-width:560px){
   .arch .it{grid-template-columns:1fr;gap:3px}
   th.name,td.name{min-width:150px}
@@ -152,7 +179,7 @@ footer{margin-top:44px;padding-top:18px;border-top:1px solid var(--line);font-si
 </section>
 
 <section>
-  <div class="shead"><div><h2>Speciality Products</h2><p>Viskon ve polyester elyaf · USD / kg</p></div></div>
+  <div class="shead"><div><h2 lang="en">Speciality Products</h2><p>Viskon ve polyester elyaf · USD / kg</p></div></div>
   <div id="noteEd_usd"></div>
   <div class="card"><div class="scroll"><table id="tbl_usd"></table></div><div id="add_usd"></div></div>
 </section>
@@ -337,7 +364,7 @@ function renderPills(){
   `<button class="pill${sel.has(r.n)?" on":""}" data-n="${esc(r.n)}" aria-pressed="${sel.has(r.n)}"><span class="dot" style="color:${r.c}"></span>${esc(r.n)}</button>`).join("");
 }
 function draw(){
- const W=980,H=430,ml=54,mr=26,mt=28,mb=58;
+ const cw=(document.getElementById("chart").clientWidth||980),W=Math.max(600,cw),H=Math.max(360,Math.min(460,Math.round(W*.32))),ml=54,mr=26,mt=28,mb=58;
  const cols=S.eur.cols,D=cols.map(c=>c.d);
  const items=S.eur.rows.filter(r=>sel.has(r.n)&&vdates("eur",r).length>1).map(r=>{
   const ds=vdates("eur",r),base=r.v[ds[0]];
@@ -356,15 +383,15 @@ function draw(){
  let s=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Kanecaron fiyat seyri grafiği">`;
  ticks.forEach(v=>{
   s+=`<line x1="${ml}" y1="${Y(v).toFixed(1)}" x2="${W-mr}" y2="${Y(v).toFixed(1)}" stroke="var(--line)" stroke-width="1"/>`;
-  s+=`<text x="${ml-8}" y="${(Y(v)+4).toFixed(1)}" text-anchor="end" fill="var(--fg-2)" font-family="IBM Plex Mono,monospace" font-size="11">${mode==="idx"?v.toFixed(0):v.toFixed(2)}</text>`;
+  s+=`<text x="${ml-8}" y="${(Y(v)+4).toFixed(1)}" text-anchor="end" fill="var(--fg-2)" font-family="IBM Plex Sans,Segoe UI,Arial,sans-serif" font-size="11">${mode==="idx"?v.toFixed(0):v.toFixed(2)}</text>`;
  });
  cols.forEach(c=>{
   const x=X(c.d);
   s+=`<line x1="${x.toFixed(1)}" y1="${mt}" x2="${x.toFixed(1)}" y2="${H-mb}" stroke="var(--line)" stroke-width="1" opacity="0.5"/>`;
-  s+=`<text x="${x.toFixed(1)}" y="${H-mb+16}" text-anchor="end" fill="var(--fg-2)" font-family="IBM Plex Mono,monospace" font-size="10" transform="rotate(-45 ${x.toFixed(1)} ${H-mb+16})">${lab(c.d)}</text>`;
+  s+=`<text x="${x.toFixed(1)}" y="${H-mb+16}" text-anchor="end" fill="var(--fg-2)" font-family="IBM Plex Sans,Segoe UI,Arial,sans-serif" font-size="10" transform="rotate(-45 ${x.toFixed(1)} ${H-mb+16})">${lab(c.d)}</text>`;
  });
  s+=`<line x1="${ml}" y1="${H-mb}" x2="${W-mr}" y2="${H-mb}" stroke="var(--fg-2)" stroke-width="1"/>`;
- s+=`<text x="${ml}" y="${H-10}" fill="var(--fg-2)" font-family="IBM Plex Mono,monospace" font-size="10">${mode==="idx"?"İlk liste = 100":"€ / kg · EX JAPAN"}</text>`;
+ s+=`<text x="${ml}" y="${H-10}" fill="var(--fg-2)" font-family="IBM Plex Sans,Segoe UI,Arial,sans-serif" font-size="10">${mode==="idx"?"İlk liste = 100":"€ / kg · EX JAPAN"}</text>`;
  items.forEach((i,k)=>{
   const pts=i.series.map(s2=>`${X(s2.d).toFixed(1)},${Y(s2.y).toFixed(1)}`).join(" ");
   s+=`<polyline points="${pts}" fill="none" stroke="${i.r.c}" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>`;
@@ -375,11 +402,11 @@ function draw(){
     const x=X(s2.d),y=Y(s2.y);
     let anchor="middle",dx=0;
     if(x<ml+16){anchor="start";dx=-6}else if(x>W-mr-16){anchor="end";dx=6}
-    s+=`<text x="${(x+dx).toFixed(1)}" y="${(y+(above?-9:17)).toFixed(1)}" text-anchor="${anchor}" fill="${i.r.c}" stroke="var(--surface)" stroke-width="3.2" paint-order="stroke" stroke-linejoin="round" font-family="IBM Plex Mono,monospace" font-size="10" font-weight="600">${mode==="idx"?s2.y.toFixed(0):s2.raw.toFixed(2)}</text>`;
+    s+=`<text x="${(x+dx).toFixed(1)}" y="${(y+(above?-9:17)).toFixed(1)}" text-anchor="${anchor}" fill="${i.r.c}" stroke="var(--surface)" stroke-width="3.2" paint-order="stroke" stroke-linejoin="round" font-family="IBM Plex Sans,Segoe UI,Arial,sans-serif" font-size="10" font-weight="600">${mode==="idx"?s2.y.toFixed(0):s2.raw.toFixed(2)}</text>`;
    });
   }
  });
- if(!items.length)s+=`<text x="${W/2}" y="${H/2}" text-anchor="middle" fill="var(--fg-2)" font-family="IBM Plex Sans,sans-serif" font-size="14">Görüntülemek için yukarıdan ürün seç</text>`;
+ if(!items.length)s+=`<text x="${W/2}" y="${H/2}" text-anchor="middle" fill="var(--fg-2)" font-family="IBM Plex Sans,Segoe UI,Arial,sans-serif" font-size="14">Görüntülemek için yukarıdan ürün seç</text>`;
  document.getElementById("chart").innerHTML=s+"</svg>";
 }
 function niceStep(r){const e=Math.pow(10,Math.floor(Math.log10(r||1)));const m=(r||1)/e;return (m<1.5?1:m<3?2:m<7?5:10)*e}
@@ -521,4 +548,5 @@ document.getElementById("csvBtn").addEventListener("click",function(){
 
 renderAll();
 stamp("Hazır");
+{let rz;window.addEventListener("resize",()=>{clearTimeout(rz);rz=setTimeout(draw,150)});}
 </script>
