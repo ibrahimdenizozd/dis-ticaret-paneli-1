@@ -131,6 +131,18 @@ input.cell,input.dt{font-family:var(--body)}
 .arch .tx{font-size:13px}
 .panel{border-radius:4px;margin:12px 16px}
 footer{margin-top:20px;border-top:0}
+table{border-collapse:collapse}
+table th,table td{border:1px solid var(--line);vertical-align:middle}
+thead th{text-align:center}
+th.name,td.name{text-align:left}
+td[data-cell="price"],td.na{text-align:center;padding:6px 10px;min-width:74px}
+td[data-cell="price"] .num{display:block;line-height:1.25}
+.chg{min-height:14px;line-height:14px}
+td[data-cell="extra"]{text-align:left}
+thead th[style*="text-align:left"]{text-align:left}
+tbody tr:nth-child(even) td{background-color:#FAFBFD}
+tbody tr:nth-child(even) td.hl-up{background:var(--up-soft)} tbody tr:nth-child(even) td.hl-down{background:var(--down-soft)}
+tbody tr:nth-child(even) td.name{background:#FAFBFD}
 @media (max-width:560px){
   .arch .it{grid-template-columns:1fr;gap:3px}
   th.name,td.name{min-width:150px}
@@ -307,7 +319,7 @@ function renderTable(k){
   T.cols.forEach(c=>{
    const v=r.v[c.d];
    let cls="",inner;
-   if(v==null){cls="na";inner="·"}
+   if(v==null){cls="na";inner='<span class="num">·</span><span class="chg">&nbsp;</span>'}
    else{
     let chg="";
     if(prev!=null){
@@ -315,7 +327,7 @@ function renderTable(k){
      if(Math.abs(df)<0.005)chg=`<span class="chg flat">=</span>`;
      else{const kk=df>0?"up":"down";cls="hl-"+kk;chg=`<span class="chg ${kk}">${(df>0?"+":"−")+Math.abs(df).toFixed(2)+" "+D.unit}</span>`}
     }
-    inner=`<span class="num">${fmt(v)}</span>${chg}`;
+    inner=`<span class="num">${fmt(v)}</span>${chg||'<span class="chg">&nbsp;</span>'}`;
    }
    h+=`<td class="${cls}" data-k="${k}" data-row="${ri}" data-d="${c.d}" data-cell="price">${inner}</td>`;
    if(v!=null)prev=v;
@@ -364,7 +376,8 @@ function renderPills(){
   `<button class="pill${sel.has(r.n)?" on":""}" data-n="${esc(r.n)}" aria-pressed="${sel.has(r.n)}"><span class="dot" style="color:${r.c}"></span>${esc(r.n)}</button>`).join("");
 }
 function draw(){
- const cw=(document.getElementById("chart").clientWidth||980),W=Math.max(600,cw),H=Math.max(360,Math.min(460,Math.round(W*.32))),ml=54,mr=26,mt=28,mb=58;
+ const cw=(document.getElementById("chart").clientWidth||980),W=Math.max(600,cw),H=Math.max(360,Math.min(460,Math.round(W*.32))),ml=54,mt=28,mb=58;
+ const mr=26+(S.eur.rows.some(r=>sel.has(r.n))?Math.min(190,8+7.2*Math.max(...S.eur.rows.filter(r=>sel.has(r.n)).map(r=>r.n.length))):0);
  const cols=S.eur.cols,D=cols.map(c=>c.d);
  const items=S.eur.rows.filter(r=>sel.has(r.n)&&vdates("eur",r).length>1).map(r=>{
   const ds=vdates("eur",r),base=r.v[ds[0]];
@@ -406,6 +419,10 @@ function draw(){
    });
   }
  });
+ /* ürün adları çizginin sonunda; üst üste binmesin diye dikeyde aralanır */
+ const ends=items.map(i=>{const l=i.series[i.series.length-1];return {n:i.r.n,c:i.r.c,x:X(l.d),y:Y(l.y)}}).sort((a,b)=>a.y-b.y);
+ for(let k=1;k<ends.length;k++)if(ends[k].y-ends[k-1].y<15)ends[k].y=ends[k-1].y+15;
+ ends.forEach(e=>{s+=`<text x="${(e.x+10).toFixed(1)}" y="${(e.y+4).toFixed(1)}" fill="${e.c}" stroke="var(--surface)" stroke-width="3.5" paint-order="stroke" font-family="IBM Plex Sans,Segoe UI,Arial,sans-serif" font-size="12.5" font-weight="700">${esc(e.n)}</text>`});
  if(!items.length)s+=`<text x="${W/2}" y="${H/2}" text-anchor="middle" fill="var(--fg-2)" font-family="IBM Plex Sans,Segoe UI,Arial,sans-serif" font-size="14">Görüntülemek için yukarıdan ürün seç</text>`;
  document.getElementById("chart").innerHTML=s+"</svg>";
 }
