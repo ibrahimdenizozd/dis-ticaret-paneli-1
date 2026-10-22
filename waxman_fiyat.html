@@ -13,6 +13,8 @@
 *{box-sizing:border-box}
 body{background:var(--bg);color:var(--fg);font:14px/1.5 var(--f);margin:0}
 .wrap{padding:18px 20px 60px}
+body.gomulu .wrap{padding:12px 16px 30px}
+body.gomulu h1,body.gomulu .sub,body.gomulu #mod,body.gomulu #cb{display:none}
 h1{font-size:22px;font-weight:700;letter-spacing:-.01em;margin:0}
 .sub{color:var(--fg-2);margin:4px 0 0;font-size:13.5px}
 .secim{display:flex;align-items:center;gap:10px 14px;flex-wrap:wrap;margin-top:14px;padding:12px 16px;background:var(--surface);border:1px solid var(--line);border-radius:4px}
@@ -166,11 +168,14 @@ function stamp(t){ $("#saved").textContent=t; }
    Siparişler Satınalma panelinin gömülü listesinden + elle eklenen/düzeltilen satırlardan,
    Kayıtlar ortak depodaki alım listesinden (maliyet:alim:*) okunur. */
 let SIP=[], FAT=[], SIPTES=new Map();
+/* ortak depo üst pencerede; panel Satınalma'nın açılır penceresine gömülünce bir kat daha içeride olur */
+const UST=(()=>{ try{ let w=window; while(w!==w.parent&&!w.__panelDepo) w=w.parent; return w.__panelDepo?w:window.top; }catch(e){ return window.top; } })();
+const GOM=window.__gomulu||null;
 async function siparisleriOku(){
-  let D={}; try{ D=window.parent.__panelDepo.oku("maliyet:"); }catch(e){}
+  let D={}; try{ D=UST.__panelDepo.oku("maliyet:"); }catch(e){}
   let arr=[];
   try{
-    const el=window.parent.document.getElementById("src-maliyet");
+    const el=UST.document.getElementById("src-maliyet");
     const b=Uint8Array.from(atob(el.textContent.trim()),c=>c.charCodeAt(0));
     const txt=new TextDecoder().decode(b); const m=/POB64="([^"]+)"/.exec(txt);
     if(m){ const bin=Uint8Array.from(atob(m[1]),c=>c.charCodeAt(0));
@@ -190,7 +195,7 @@ async function siparisleriOku(){
     .filter(r=>r.ted&&r.f>=0.05&&/^\d{4}-\d{2}/.test(r.d));
 }
 function faturalariOku(){
-  let D={}; try{ D=window.parent.__panelDepo.oku("maliyet:"); }catch(e){}
+  let D={}; try{ D=UST.__panelDepo.oku("maliyet:"); }catch(e){}
   let meta=null; try{ meta=JSON.parse(D["alim:meta"]); }catch(e){}
   FAT=[]; if(!meta) return;
   const F=meta.fields, ix=n=>F.indexOf(n);
@@ -205,8 +210,8 @@ function faturalariOku(){
 
 /* ====== durum ====== */
 const ST={mod:"ted",kod:"",ted:"",kay:"sip",don:"c",bas:"",sel:new Set(),lbl:true,noteOpen:null};
-try{ const o=JSON.parse(localStorage.getItem("ui")||"{}"); Object.assign(ST,{mod:o.mod||"ted",kod:o.kod||"",ted:o.ted||"",kay:o.kay||"sip",don:o.don||"c",bas:o.bas||""}); }catch(e){}
-function uiKaydet(){ try{ localStorage.setItem("ui",JSON.stringify({mod:ST.mod,kod:ST.kod,ted:ST.ted,kay:ST.kay,don:ST.don,bas:ST.bas})); }catch(e){} }
+if(!GOM) try{ const o=JSON.parse(localStorage.getItem("ui")||"{}"); Object.assign(ST,{mod:o.mod||"ted",kod:o.kod||"",ted:o.ted||"",kay:o.kay||"sip",don:o.don||"c",bas:o.bas||""}); }catch(e){}
+function uiKaydet(){ if(GOM) return; try{ localStorage.setItem("ui",JSON.stringify({mod:ST.mod,kod:ST.kod,ted:ST.ted,kay:ST.kay,don:ST.don,bas:ST.bas})); }catch(e){} }
 
 const kaynak=()=>ST.kay==="sip"?SIP:FAT;
 function yillar(){ return [...new Set(kaynak().map(r=>r.d.slice(0,4)))].sort(); }
@@ -250,7 +255,7 @@ function gerceklesen(){
 let G=null;
 function renderAll(){
   const T=tedarikciler(), tl=T.map(x=>x[0]);
-  if(ST.mod==="kod"){ if(!ST.kod||!tl.includes(ST.kod)) ST.kod=(T.slice().sort((a,b)=>b[1]-a[1])[0]||[""])[0]; }
+  if(GOM){} else if(ST.mod==="kod"){ if(!ST.kod||!tl.includes(ST.kod)) ST.kod=(T.slice().sort((a,b)=>b[1]-a[1])[0]||[""])[0]; }
   else if(!ST.ted||!tl.includes(ST.ted)) ST.ted=tl.includes("WAXMAN FIBRES LTD")?"WAXMAN FIBRES LTD":(tl[0]||"");
   $("#tedQ").value=(T.find(x=>x[0]===secili())||["","",""])[2];
   document.querySelectorAll("#mod button").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.v===ST.mod)));
@@ -410,6 +415,9 @@ let rz; addEventListener("resize",()=>{ clearTimeout(rz); rz=setTimeout(draw,150
 
 /* başlangıç */
 (async()=>{ stamp("Yükleniyor…"); faturalariOku(); await siparisleriOku(); stamp("");
+  if(GOM){ /* Satınalma › Alım Dağılımı'ndan açıldı: tek madde kodu, bütün geçmişiyle */
+    ST.mod="kod"; ST.kod=GOM.kod; const y=kayit().map(r=>r.d.slice(0,4)).sort(); ST.bas=y[0]||"";
+    document.body.classList.add("gomulu"); }
   renderAll(); if(!ST.sel.size){ G.L.slice(0,3).forEach(p=>ST.sel.add("g|"+p.key)); renderPills(); draw(); }
 })();
 </script>
