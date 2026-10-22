@@ -143,7 +143,7 @@ textarea{width:100%;min-height:70px;font:inherit;font-size:13px;border:1px solid
     <div class="shead"><div><h2>Gerçekleşen alım fiyatları</h2><p id="gAlt"></p></div>
       <button class="btn" id="csvBtn">Tabloyu kopyala</button></div>
     <div class="scroll" id="gerTbl"></div>
-    <p class="note">Hücrede dönemin ortalama birim fiyatı, altında ürünün <b>bir önceki alındığı döneme</b> göre farkı (artış kırmızı, düşüş yeşil). <b>·</b> o dönemde alım yok demektir. Ürün farklı para birimleriyle alındıysa her para birimi ayrı satırdır.</p>
+    <p class="note">Hücrede dönemin ortalama birim fiyatı, altında ürünün <b>bir önceki alındığı döneme</b> göre farkı (artış kırmızı, düşüş yeşil). <b>·</b> o dönemde alım yok demektir. Ürün farklı para birimi ya da teslim şekliyle alındıysa her biri ayrı satırdır (fiyatlar ancak aynı teslim şeklinde karşılaştırılabilir). Siparişlerde teslim şekli, elle girilmediyse Kayıtlar'daki aynı siparişin faturasından alınır; bulunamazsa <b>?</b> görünür.</p>
   </section>
 
 
@@ -165,7 +165,7 @@ function stamp(t){ $("#saved").textContent=t; }
 /* ====== gerçekleşen alımlar: Satınalma siparişleri ve Kayıtlar ======
    Siparişler Satınalma panelinin gömülü listesinden + elle eklenen/düzeltilen satırlardan,
    Kayıtlar ortak depodaki alım listesinden (maliyet:alim:*) okunur. */
-let SIP=[], FAT=[];
+let SIP=[], FAT=[], SIPTES=new Map();
 async function siparisleriOku(){
   let D={}; try{ D=window.parent.__panelDepo.oku("maliyet:"); }catch(e){}
   let arr=[];
@@ -185,7 +185,8 @@ async function siparisleriOku(){
   try{ const e=JSON.parse(D["buy:edits"]||"null"); if(e){ OVR=e.ovr||{}; DEL=e.del||{}; } }catch(e){}
   MAN.forEach((r,i)=>{ if(!r.id) r.id="M"+i+"_"+(r.sayi||""); });
   SIP=[...MAN,...L].filter(r=>!DEL[r.id]).map(r=>({...r,...(OVR[r.id]||{})}))
-    .map(r=>({ted:nrmAd(r.ted),d:String(r.tarih||"").slice(0,10),kod:String(r.kod||"").trim(),ad:String(r.tanim||"").trim(),f:+r.fiyat||0,pb:String(r.pb||"").trim()||"?",q:+r.mik||0}))
+    .map(r=>({ted:nrmAd(r.ted),d:String(r.tarih||"").slice(0,10),kod:String(r.kod||"").trim(),ad:String(r.tanim||"").trim(),f:+r.fiyat||0,pb:String(r.pb||"").trim()||"?",
+      ts:String(r.teslim||(SIPTES.get(String(r.sayi||"").trim())||{}).t||"").trim().toUpperCase(),q:+r.mik||0}))
     .filter(r=>r.ted&&r.f>=0.05&&/^\d{4}-\d{2}/.test(r.d));
 }
 function faturalariOku(){
@@ -193,10 +194,12 @@ function faturalariOku(){
   let meta=null; try{ meta=JSON.parse(D["alim:meta"]); }catch(e){}
   FAT=[]; if(!meta) return;
   const F=meta.fields, ix=n=>F.indexOf(n);
-  const iT=ix("TEDARIKCI"),iD=ix("FATTARIHI"),iM=ix("MALTANIM"),iF=ix("FIYAT"),iP=ix("PB"),iQ=ix("TICMIKTAR"),iK=[ix("KOD1"),ix("KOD2"),ix("KOD3"),ix("KOD4")];
+  const iT=ix("TEDARIKCI"),iD=ix("FATTARIHI"),iM=ix("MALTANIM"),iF=ix("FIYAT"),iP=ix("PB"),iQ=ix("TICMIKTAR"),iTs=ix("TESLIM"),iS=ix("SIPARIS"),iK=[ix("KOD1"),ix("KOD2"),ix("KOD3"),ix("KOD4")];
   for(let c=0;c<meta.n;c++){ let p=[]; try{ p=JSON.parse(D["alim:c"+c]); }catch(e){}
-    for(const r of p){ const f=+r[iF]||0; if(!(f>=0.05)) continue;
-      FAT.push({ted:nrmAd(r[iT]),d:String(r[iD]||"").slice(0,10),kod:iK.map(i=>r[i]).filter(v=>v!=null&&v!=="").join("-"),ad:String(r[iM]||"").trim(),f,pb:String(r[iP]||"").trim()||"?",q:+r[iQ]||0}); } }
+    for(const r of p){ const ts=iTs>=0?String(r[iTs]||"").trim().toUpperCase():"";
+      if(iS>=0&&r[iS]&&ts){ const k=String(r[iS]).trim(), o=SIPTES.get(k); if(!o||String(r[iD])>o.d) SIPTES.set(k,{t:ts,d:String(r[iD])}); }
+      const f=+r[iF]||0; if(!(f>=0.05)) continue;
+      FAT.push({ted:nrmAd(r[iT]),d:String(r[iD]||"").slice(0,10),kod:iK.map(i=>r[i]).filter(v=>v!=null&&v!=="").join("-"),ad:String(r[iM]||"").trim(),f,pb:String(r[iP]||"").trim()||"?",ts,q:+r[iQ]||0}); } }
   FAT=FAT.filter(r=>r.ted&&/^\d{4}-\d{2}/.test(r.d));
 }
 
@@ -222,8 +225,8 @@ const donemT=k=>ST.don==="a"?AYK[+k.slice(5,7)-1]+" "+k.slice(2,4):ST.don==="c"?
 function gerceklesen(){
   const bas=basYil(), RR=kayit().filter(r=>r.d.slice(0,4)>=bas);
   const P=new Map();
-  for(const r of RR){ const key=(r.kod||r.ad)+"|"+r.pb; let p=P.get(key);
-    if(!p){ p={key,kod:r.kod,ad:r.ad,pb:r.pb,son:"",sonF:0,q:0,n:0,per:{},pts:{}}; P.set(key,p); }
+  for(const r of RR){ const key=(r.kod||r.ad)+"|"+r.pb+"|"+(r.ts||""); let p=P.get(key);
+    if(!p){ p={key,kod:r.kod,ad:r.ad,pb:r.pb,ts:r.ts||"",son:"",sonF:0,q:0,n:0,per:{},pts:{}}; P.set(key,p); }
     const k=donemK(r.d), o=p.per[k]||(p.per[k]={a:0,w:0,s:0,n:0}); const w=r.q>0?r.q:1;
     o.a+=r.f*w; o.w+=w; o.s+=r.f; o.n++;
     const ay=r.d.slice(0,7), t=p.pts[ay]||(p.pts[ay]={a:0,w:0}); t.a+=r.f*w; t.w+=w;
@@ -272,9 +275,9 @@ function hucre(v,prev){
 function renderGer(){
   const {L,per}=G;
   if(!L.length){ $("#gerTbl").innerHTML=`<div class="bos">${ST.ted?"Bu tedarikçi için "+(ST.kay==="sip"?"sipariş":"fatura")+" fiyatı yok"+(ST.kay==="fat"&&!FAT.length?" (Kayıtlar yüklenmemiş)":"")+".":"Tedarikçi seç."}</div>`; return; }
-  let h=`<table><thead><tr><th class="name">Ürün</th><th>PB</th>${per.map(k=>`<th>${donemT(k)}</th>`).join("")}<th class="son">Son fiyat</th><th>Son alım</th><th>Miktar (kg)</th></tr></thead><tbody>`;
+  let h=`<table><thead><tr><th class="name">Ürün</th><th>PB</th><th>Teslim</th>${per.map(k=>`<th>${donemT(k)}</th>`).join("")}<th class="son">Son fiyat</th><th>Son alım</th><th>Miktar (kg)</th></tr></thead><tbody>`;
   L.forEach(p=>{ let prev=null;
-    h+=`<tr><td class="name" title="${esc(p.ad)}">${esc(p.ad||p.kod)}<small>${esc(p.kod)}</small></td><td>${esc(p.pb)}</td>`;
+    h+=`<tr><td class="name" title="${esc(p.ad)}">${esc(p.ad||p.kod)}<small>${esc(p.kod)}</small></td><td>${esc(p.pb)}</td><td><b>${esc(p.ts)||'<span style="color:var(--fg-3);font-weight:400">?</span>'}</b></td>`;
     per.forEach(k=>{ const o=p.per[k]; const v=o?o.a/o.w:null; const c=hucre(v,prev); if(v!=null) prev=v;
       h+=`<td class="${c.cls}" title="${o?o.n+" alım":""}">${c.h}</td>`; });
     h+=`<td class="son"><span class="num">${fmt(p.sonF)}</span><span class="chg">&nbsp;</span></td><td>${lab(p.son)}</td><td>${Math.round(p.q).toLocaleString("tr-TR")}</td></tr>`; });
@@ -284,7 +287,7 @@ function renderGer(){
 /* ---- grafik: gerçekleşen (aylık ortalama) + liste fiyatları ---- */
 function seriler(){
   const S=[];
-  G.L.slice(0,20).forEach(p=>S.push({id:"g|"+p.key,pb:p.pb,n:p.kisa+" ("+p.pb+")",c:p.c,liste:false,pts:Object.keys(p.pts).sort().map(a=>({d:a+"-15",v:p.pts[a].a/p.pts[a].w}))}));
+  G.L.slice(0,20).forEach(p=>S.push({id:"g|"+p.key,pb:p.pb,n:p.kisa+" ("+p.pb+(p.ts?" · "+p.ts:"")+")",c:p.c,liste:false,pts:Object.keys(p.pts).sort().map(a=>({d:a+"-15",v:p.pts[a].a/p.pts[a].w}))}));
   return S;
 }
 function renderPills(){
@@ -383,8 +386,8 @@ $("#basY").onchange=e=>{ ST.bas=e.target.value; uiKaydet(); renderAll(); };
 $("#pills").onclick=e=>{ const b=e.target.closest(".pill"); if(!b) return; const id=b.dataset.id; ST.sel.has(id)?ST.sel.delete(id):ST.sel.add(id); renderPills(); draw(); };
 $("#clrBtn").onclick=()=>{ ST.sel.clear(); renderPills(); draw(); };
 $("#lblBtn").onclick=function(){ ST.lbl=!ST.lbl; this.textContent="Etiketler: "+(ST.lbl?"açık":"kapalı"); draw(); };
-$("#csvBtn").onclick=function(){ const {L,per}=G; const rows=[["Ürün","Kod","PB",...per.map(donemT),"Son fiyat","Son alım","Miktar"].join("\t")];
-  L.forEach(p=>rows.push([p.ad,p.kod,p.pb,...per.map(k=>p.per[k]?String((p.per[k].a/p.per[k].w).toFixed(3)).replace(".",","):""),String(p.sonF).replace(".",","),p.son,Math.round(p.q)].join("\t")));
+$("#csvBtn").onclick=function(){ const {L,per}=G; const rows=[["Ürün","Kod","PB","Teslim",...per.map(donemT),"Son fiyat","Son alım","Miktar"].join("\t")];
+  L.forEach(p=>rows.push([p.ad,p.kod,p.pb,p.ts,...per.map(k=>p.per[k]?String((p.per[k].a/p.per[k].w).toFixed(3)).replace(".",","):""),String(p.sonF).replace(".",","),p.son,Math.round(p.q)].join("\t")));
   const t=rows.join("\n"), b=this; const ok=()=>{b.textContent="Kopyalandı";setTimeout(()=>b.textContent="Tabloyu kopyala",1600)};
   try{ navigator.clipboard.writeText(t).then(ok).catch(()=>{}); }catch(e){} };
 let rz; addEventListener("resize",()=>{ clearTimeout(rz); rz=setTimeout(draw,150); });
@@ -398,7 +401,7 @@ let rz; addEventListener("resize",()=>{ clearTimeout(rz); rz=setTimeout(draw,150
   addEventListener("scroll",()=>tip.hidden=true,true); })();
 
 /* başlangıç */
-(async()=>{ stamp("Yükleniyor…"); await siparisleriOku(); faturalariOku(); stamp("");
+(async()=>{ stamp("Yükleniyor…"); faturalariOku(); await siparisleriOku(); stamp("");
   renderAll(); if(!ST.sel.size){ G.L.slice(0,3).forEach(p=>ST.sel.add("g|"+p.key)); renderPills(); draw(); }
 })();
 </script>
