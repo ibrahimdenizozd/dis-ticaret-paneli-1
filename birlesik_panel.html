@@ -1335,6 +1335,10 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
     });
   }).then(function () {
     hazir = true; durumGuncel(); canliBaglan(); planla(300);
+    /* kaldırılan Taşıma Analiz panelinden kalan kayıtlar bir kez silinir (buluttan da) */
+    ["tasima:v1", "maliyet:nak:v1"].forEach(function (k) {
+      try { if (Object.prototype.hasOwnProperty.call(D.tumu(), k)) D.yaz(k, null); } catch (e) {}
+    });
     dosyaBtn.style.display = ""; dosyaSayiGoster(); dosyaPlanla(1500);
   });
 })();
