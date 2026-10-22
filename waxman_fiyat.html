@@ -17,7 +17,15 @@ h1{font-size:22px;font-weight:700;letter-spacing:-.01em;margin:0}
 .sub{color:var(--fg-2);margin:4px 0 0;font-size:13.5px}
 .secim{display:flex;align-items:center;gap:10px 14px;flex-wrap:wrap;margin-top:14px;padding:12px 16px;background:var(--surface);border:1px solid var(--line);border-radius:4px}
 .secim label{font-size:13px;font-weight:600;color:var(--fg-2)}
-.secim input[list]{font:inherit;font-size:15px;font-weight:600;padding:6px 10px;border:1px solid var(--line);border-radius:4px;width:min(460px,100%);color:var(--fg)}
+.cb{position:relative;width:min(480px,100%)}
+.cb input{font:inherit;font-size:15px;font-weight:600;padding:6px 30px 6px 10px;border:1px solid var(--line);border-radius:4px;width:100%;color:var(--fg)}
+.cb .ok{position:absolute;right:10px;top:50%;transform:translateY(-50%);color:var(--fg-3);pointer-events:none}
+.cbl{position:absolute;left:0;right:0;top:calc(100% + 2px);max-height:360px;overflow:auto;background:#fff;border:1px solid var(--line);border-radius:4px;box-shadow:0 10px 24px rgba(0,0,0,.15);z-index:30}
+.cbl div{padding:6px 10px;cursor:pointer;display:flex;justify-content:space-between;gap:10px;font-size:13.5px}
+.cbl div small{color:var(--fg-3);white-space:nowrap}
+.cbl div:hover,.cbl div.on{background:var(--accent-soft)}
+.cbl div.sec{font-weight:600}
+.cbl .yok{color:var(--fg-3);cursor:default}
 .secim select{font:inherit;font-size:13.5px;padding:5px 9px;border:1px solid var(--line);border-radius:4px;background:#fff}
 .seg{display:inline-flex;border:1px solid var(--line);border-radius:4px;overflow:hidden}
 .seg button{border:0;border-right:1px solid var(--line2);background:#fff;padding:5px 12px;font:inherit;font-size:13.5px;color:var(--fg-2);cursor:pointer}
@@ -99,10 +107,10 @@ textarea{width:100%;min-height:70px;font:inherit;font-size:13px;border:1px solid
 
 <div class="wrap">
   <h1>Tedarikçi Fiyat Arşivi</h1>
-  <p class="sub">Tedarikçiyi seç: Satınalma siparişlerinden (ya da Kayıtlar'daki faturalardan) fiyat geçmişi kendiliğinden çıkar. Tedarikçinin gönderdiği fiyat listelerini de ayrıca tablo olarak tutabilirsin.</p>
+  <p class="sub">Tedarikçiyi seç: Satınalma siparişlerinden (ya da Kayıtlar'daki faturalardan) fiyat geçmişi kendiliğinden çıkar.</p>
   <div class="secim">
     <label for="tedQ">Tedarikçi</label>
-    <input list="tedL" id="tedQ" placeholder="Tedarikçi adı yaz ya da seç…" autocomplete="off"><datalist id="tedL"></datalist>
+    <div class="cb" id="cb"><input id="tedQ" placeholder="Tedarikçi adı yaz ya da seç…" autocomplete="off"><span class="ok">▾</span><div class="cbl" id="tedL" hidden></div></div>
     <label>Kaynak</label>
     <span class="seg" id="kaynak"><button data-v="sip" aria-pressed="true" title="Satınalma sekmesindeki siparişler: fiyat sipariş tarihinde">Siparişler</button><button data-v="fat" aria-pressed="false" title="Satınalma › Kayıtlar: fiyat fatura tarihinde">Faturalar</button></span>
     <label>Dönem</label>
@@ -118,7 +126,7 @@ textarea{width:100%;min-height:70px;font:inherit;font-size:13px;border:1px solid
         <button class="btn" id="lblBtn">Etiketler: açık</button><button class="btn" id="clrBtn">Seçimi temizle</button></div></div>
     <div class="pills" id="pills"></div>
     <div class="chartbox"><div id="chart"></div></div>
-    <p class="note">Gerçekleşen fiyatlar dönemin miktar ağırlıklı ortalamasıdır; <i style="font-style:normal;color:var(--edit)">liste</i> etiketli rozetler elle girilen fiyat listelerinden gelir.</p>
+    <p class="note">Noktalar ayın miktar ağırlıklı ortalama fiyatıdır.</p>
   </section>
 
   <section>
@@ -128,22 +136,7 @@ textarea{width:100%;min-height:70px;font:inherit;font-size:13px;border:1px solid
     <p class="note">Hücrede dönemin ortalama birim fiyatı, altında ürünün <b>bir önceki alındığı döneme</b> göre farkı (artış kırmızı, düşüş yeşil). <b>·</b> o dönemde alım yok demektir. Ürün farklı para birimleriyle alındıysa her para birimi ayrı satırdır.</p>
   </section>
 
-  <section>
-    <div class="shead"><div><h2>Tedarikçinin fiyat listeleri</h2><p>elle girilen liste fiyatları · hücreye çift tıkla, düzenle</p></div></div>
-    <div id="listeler"></div>
-    <div class="yeni">
-      <label style="font-size:12px;font-weight:600;color:var(--fg-2)">Yeni liste tablosu</label>
-      <input class="tin" id="ylAd" placeholder="Tablo adı (ör. Kanecaron)">
-      <select id="ylPb" class="tin" style="width:auto"><option>EUR</option><option>USD</option><option>TRY</option><option>GBP</option><option>JPY</option></select>
-      <label style="font-size:12.5px;display:flex;align-items:center;gap:5px;font-weight:400"><input type="checkbox" id="ylEk"> teslim şekli kolonu</label>
-      <button class="btn" data-act="addgrp">Tablo ekle</button>
-    </div>
-  </section>
 
-  <section id="archSec">
-    <div class="shead"><div><h2>Liste arşivi</h2><p>her fiyat listesinin tarihi ve notu</p></div></div>
-    <div class="arch" id="arch"></div>
-  </section>
 </div>
 
 <script>
@@ -157,43 +150,6 @@ const fmt=v=>v==null?"–":(Math.abs(v)<1?v.toFixed(3):v.toFixed(2)).replace("."
 const lab=d=>{const p=d.split("-");return p.length===3?p[2]+"."+p[1]+"."+p[0].slice(2):AYK[(+p[1])-1]+" "+p[0].slice(2)};
 const nrmAd=s=>String(s||"").trim();
 
-/* ====== elle girilen listeler: { tedarikçi: [ {ad,pb,ek,cols:[{d,note}],rows:[{n,c,t,term,v}]} ] } ====== */
-const WAX_EUR={ad:"Kanecaron (EX JAPAN direkt sevkiyat)",pb:"EUR",ek:false,
- cols:[{d:"2023-03-30",note:"PQ61 Dope Dyed için 9.54 özel teklif fiyatı ayrıca belirtilmiş. PC 1.9x38 özel ihale: 7.08."},{d:"2023-05-11",note:"Temmuz sevkiyatlarından geçerli. Protex A, PQ ve PC zamlandı; PF 8.11'e çıktı."},{d:"2023-06-13",note:"Temmuz sevkiyatları. Tek fark: PF Antimony free 8.11 → 7.90'a geri çekildi."},{d:"2023-11-07",note:"PQ61 Dope Dyed 10.15 → 8.49'a indi (listede 'UPDATED NOV 2023')."},{d:"2024-10-16",note:"Ocak 2025 sevkiyatlarından geçerli. Liste yeniden düzenlendi: PQ61 Navy / PQ10 Black ayrıştı, SI ve SYS eklendi, SW ve Protex A son kez göründü. PC for Milliken özel ihale 7.08 (Aralık 2024 sonuna kadar geçerli)."},{d:"2025-04-08",note:"Sadece dope dyed kalemler için ara liste: PQ61 Navy ve PQ10 Black 8.80."},{d:"2025-04-23",note:"Nisan–Haziran sevkiyatları. PQ 8.21 → 9.61, PC 7.92 → 8.58. PF Antimony free fiyatı 'TBC' olarak boş bırakılmış. PX 1.9x38 listeye girdi."},{d:"2025-05-20",note:"Önceki listeyle aynı; sadece PF Antimony free 8.90 olarak netleşti."},{d:"2025-07-10",note:"Ağustos–Eylül sevkiyatları. Genel zam. PF için Ekim–Aralık sevkiyatlarına özel 7.90 fiyatı ayrıca verildi."},{d:"2025-12-19",note:"Ocak–Mart 2026 üretim/sevkiyatı. En yüksek seviyeler: PQ 11.85, PC 10.22. PQ61 Navy artık 'Klopman project' fiyatı (11.60). PH Antimony free 6.10 ile listeye girdi."},{d:"2026-03-12",note:"Nisan–Haziran üretim/sevkiyatı. PQ ve PC bir miktar geri geldi. Klopman PQ61 11.60 → 9.20. SI, Ecru ve 14 Black olarak ikiye ayrıldı."},{d:"2026-10-16",note:"Kasım üretim/sevkiyatından geçerli. Fiyatlara mevcut sürşarjlar dahil edilmiş. SBY 2.2x38 özel fiyatla 3.75'e indi; diğer kalemlerde artış."}],
- rows:[{n:"PQ 1.7x38",c:"#0d5c63",t:"",v:{"2023-03-30":7.66,"2023-05-11":7.90,"2023-06-13":7.90,"2023-11-07":7.90,"2024-10-16":8.21,"2025-04-23":9.61,"2025-05-20":9.61,"2025-07-10":10.11,"2025-12-19":11.85,"2026-03-12":11.45,"2026-10-16":11.55}},
-  {n:"PC 1.9x38",c:"#b4642a",t:"2023 listelerinde ayrıca 7.08 özel ihale fiyatı (2024'te 'PC for Milliken').",v:{"2023-03-30":7.38,"2023-05-11":7.61,"2023-06-13":7.61,"2023-11-07":7.61,"2024-10-16":7.92,"2025-04-23":8.58,"2025-05-20":8.58,"2025-07-10":9.08,"2025-12-19":10.22,"2026-03-12":9.73,"2026-10-16":9.89}},
-  {n:"PE 1.7x38",c:"#4b5bbf",t:"",v:{"2023-03-30":5.70,"2023-05-11":5.70,"2023-06-13":5.70,"2023-11-07":5.70,"2024-10-16":5.90,"2025-04-23":5.90,"2025-05-20":5.90,"2025-07-10":6.10,"2025-12-19":6.30,"2026-03-12":6.20,"2026-10-16":6.45}},
-  {n:"PF Antimony free",c:"#8a3d8f",t:"23.04.25 listesinde fiyat TBC. 10.07.25 ve 19.12.25 listelerinde standart fiyatın yanında 7.90 dönemsel fiyat da var.",v:{"2023-03-30":7.88,"2023-05-11":8.11,"2023-06-13":7.90,"2023-11-07":7.90,"2024-10-16":7.90,"2025-05-20":8.90,"2025-07-10":8.90,"2025-12-19":8.90,"2026-03-12":8.90,"2026-10-16":9.28}},
-  {n:"PQ61 Dope Dyed Navy",c:"#1f6f8b",t:"2023'te 9.54 özel ihale fiyatı mevcut. 19.12.25'ten itibaren 'Klopman project' özel fiyatı, rebate uygulanmıyor.",v:{"2023-03-30":10.15,"2023-05-11":10.15,"2023-06-13":10.15,"2023-11-07":8.49,"2024-10-16":8.80,"2025-04-08":8.80,"2025-04-23":8.80,"2025-05-20":8.80,"2025-07-10":9.30,"2025-12-19":11.60,"2026-03-12":9.20,"2026-10-16":9.45}},
-  {n:"SBY 2.2x38",c:"#6d7b89",t:"3,5 yıl boyunca 4.04'te sabit; 16.10.26'da özel fiyatla 3.75.",v:{"2023-03-30":4.04,"2023-05-11":4.04,"2023-06-13":4.04,"2023-11-07":4.04,"2024-10-16":4.04,"2025-04-23":4.04,"2025-05-20":4.04,"2025-07-10":4.04,"2025-12-19":4.04,"2026-03-12":4.04,"2026-10-16":3.75}},
-  {n:"SI / SI Ecru",c:"#2f8f6b",t:"UK stok fiyatı 5.37 (2024–2025). 12.03.26'dan itibaren Ecru ve 14 Black olarak ayrıldı.",v:{"2024-10-16":4.92,"2025-04-23":4.92,"2025-05-20":4.92,"2025-07-10":4.92,"2025-12-19":4.92,"2026-03-12":5.42,"2026-10-16":6.02}},
-  {n:"SI 14 Black",c:"#3f4a55",t:"",v:{"2026-03-12":5.92,"2026-10-16":6.52}},
-  {n:"PQ10 Dope Dyed Black",c:"#7a4ea8",t:"10.07.25'ten sonraki listelerde yer almıyor.",v:{"2024-10-16":8.80,"2025-04-08":8.80,"2025-04-23":8.80,"2025-05-20":8.80,"2025-07-10":9.30}},
-  {n:"PX 1.9x38",c:"#a07c1f",t:"UK stoktan temin edilemiyor (n/a).",v:{"2025-04-23":8.21,"2025-05-20":8.21,"2025-07-10":8.21,"2025-12-19":8.21}},
-  {n:"Protex A 1.7x38",c:"#9b4722",t:"16.10.24'ten sonraki listelerde yok.",v:{"2023-03-30":9.43,"2023-05-11":9.66,"2023-06-13":9.66,"2023-11-07":9.66,"2024-10-16":9.95}},
-  {n:"SW 2.2x38",c:"#5f7d4a",t:"2023 sonrası listelerde yok.",v:{"2023-03-30":4.24,"2023-05-11":4.24,"2023-06-13":4.24,"2023-11-07":4.24}},
-  {n:"SYS",c:"#b0558a",t:"Sadece 16.10.24 listesinde. UK stok 4.48.",v:{"2024-10-16":4.03}},
-  {n:"PH Antimony free",c:"#2a6ea8",t:"Sadece 19.12.25 listesinde.",v:{"2025-12-19":6.10}}]};
-const WAX_USD={ad:"Speciality Products",pb:"USD",ek:true,
- cols:[{d:"2022-10-01",note:""},{d:"2023-04-01",note:""},{d:"2023-05-01",note:""},{d:"2024-01-01",note:""},{d:"2024-09-01",note:""}],
- rows:[{n:"So FR Viscose ECRU 1.67dtx",term:"DAP İstanbul (5t karayolu)",c:"#0d5c63",t:"Eylül 2024 tarihli iki ayrı liste var: biri 9.15, diğeri 9.10. Tabloda daha düşük olan gösterildi.",v:{"2023-04-01":9.15,"2024-09-01":9.10}},
-  {n:"So FR Viscose ECRU 1.67dtx",term:"CFR İzmir (1x20ft ≈ 8t)",c:"#4b5bbf",t:"",v:{"2023-04-01":8.95,"2024-09-01":8.95}},
-  {n:"So Neutral Antistat 3.3dtx (siyah PES)",term:"DAP İstanbul · 100 kg üzeri",c:"#b4642a",t:"25 kg/koli, minimum sipariş 25 kg.",v:{"2023-05-01":73.70,"2024-01-01":71.05}},
-  {n:"So Comfort (phase change) viskon",term:"DAP İstanbul (≈3t)",c:"#8a3d8f",t:"Çin menşeli beyan edildiği için UK/Türkiye tercihli menşe uygulanmıyor.",v:{"2022-10-01":8.80}}]};
-
-const ayGun=d=>d&&d.length===7?d+"-01":d;
-function eskidenTasi(o){ /* Waxman panelinin eski kaydı → yeni yapı */
-  const g=(x,ad,pb,ek)=>({ad,pb,ek,cols:x.cols.map(c=>({d:ayGun(c.d),note:c.note||""})),
-    rows:x.rows.map(r=>{ const v={}; for(const k in r.v) v[ayGun(k)]=r.v[k]; return {n:r.n,c:r.c,t:r.t||"",term:r.term||"",v}; })});
-  return {"WAXMAN FIBRES LTD":[g(o.eur,WAX_EUR.ad,"EUR",false)],"WAXMAN SPECIALTY PRODUCTS LTD":[g(o.usd,WAX_USD.ad,"USD",true)]};
-}
-function yukle(){
-  try{ const r=localStorage.getItem(KEY); if(r){ const o=JSON.parse(r); if(o&&typeof o==="object") return o; } }catch(e){}
-  try{ const r=localStorage.getItem(ESKI); if(r){ const o=JSON.parse(r); if(o&&o.eur&&o.usd) return eskidenTasi(o); } }catch(e){}
-  return {"WAXMAN FIBRES LTD":[JSON.parse(JSON.stringify(WAX_EUR))],"WAXMAN SPECIALTY PRODUCTS LTD":[JSON.parse(JSON.stringify(WAX_USD))]};
-}
-let ML=yukle();
-function save(){ try{ localStorage.setItem(KEY,JSON.stringify(ML)); stamp("Kaydedildi "+new Date().toLocaleTimeString("tr-TR",{hour:"2-digit",minute:"2-digit"})); }catch(e){ stamp("Kaydedilemedi"); } }
 function stamp(t){ $("#saved").textContent=t; }
 
 /* ====== gerçekleşen alımlar: Satınalma siparişleri ve Kayıtlar ======
@@ -239,21 +195,22 @@ const ST={ted:"",kay:"sip",don:"c",bas:"",sel:new Set(),lbl:true,noteOpen:null};
 try{ const o=JSON.parse(localStorage.getItem("ui")||"{}"); Object.assign(ST,{ted:o.ted||"",kay:o.kay||"sip",don:o.don||"c",bas:o.bas||""}); }catch(e){}
 function uiKaydet(){ try{ localStorage.setItem("ui",JSON.stringify({ted:ST.ted,kay:ST.kay,don:ST.don,bas:ST.bas})); }catch(e){} }
 
+const kaynak=()=>ST.kay==="sip"?SIP:FAT;
+function yillar(){ return [...new Set(kaynak().map(r=>r.d.slice(0,4)))].sort(); }
+function basYil(){ const y=yillar(); return ST.bas&&y.includes(ST.bas)?ST.bas:(y.length>4?y[y.length-4]:y[0]||""); }
+/* seçili başlangıç yılından sonra alımı olan tedarikçiler (adet: o dönemdeki satır sayısı) */
 function tedarikciler(){
-  const c=new Map(); const ek=(t,n)=>c.set(t,(c.get(t)||0)+n);
-  SIP.forEach(r=>ek(r.ted,1)); FAT.forEach(r=>ek(r.ted,0)); Object.keys(ML).forEach(t=>ek(t,0));
-  return [...c.keys()].sort((a,b)=>a.localeCompare(b,"tr"));
+  const b=basYil(), c=new Map();
+  kaynak().forEach(r=>{ if(r.d.slice(0,4)>=b) c.set(r.ted,(c.get(r.ted)||0)+1); });
+  return [...c.entries()].sort((a,b)=>a[0].localeCompare(b[0],"tr"));
 }
-const kayit=()=>(ST.kay==="sip"?SIP:FAT).filter(r=>r.ted===ST.ted);
+const kayit=()=>kaynak().filter(r=>r.ted===ST.ted);
 const donemK=d=>ST.don==="a"?d.slice(0,7):ST.don==="c"?d.slice(0,4)+"-Ç"+Math.ceil(+d.slice(5,7)/3):d.slice(0,4);
 const donemT=k=>ST.don==="a"?AYK[+k.slice(5,7)-1]+" "+k.slice(2,4):ST.don==="c"?k.slice(5)+" "+k.slice(2,4):k;
 
 /* ürün × dönem: miktar ağırlıklı ortalama fiyat */
 function gerceklesen(){
-  const R=kayit(), yil=R.map(r=>r.d.slice(0,4));
-  const yillar=[...new Set(yil)].sort();
-  const bas=ST.bas&&yillar.includes(ST.bas)?ST.bas:(yillar.length>4?yillar[yillar.length-4]:yillar[0]||"");
-  const RR=R.filter(r=>r.d.slice(0,4)>=bas);
+  const bas=basYil(), RR=kayit().filter(r=>r.d.slice(0,4)>=bas);
   const P=new Map();
   for(const r of RR){ const key=(r.kod||r.ad)+"|"+r.pb; let p=P.get(key);
     if(!p){ p={key,kod:r.kod,ad:r.ad,pb:r.pb,son:"",sonF:0,q:0,n:0,per:{},pts:{}}; P.set(key,p); }
@@ -268,32 +225,30 @@ function gerceklesen(){
   L.forEach(p=>new Set(String(p.ad).toLocaleUpperCase("tr-TR").split(/\s+/)).forEach(w=>sk[w]=(sk[w]||0)+1));
   L.forEach(p=>{ const w=String(p.ad).split(/\s+/).filter(x=>{ const u=x.toLocaleUpperCase("tr-TR"); return !GENEL.test(u)&&!(L.length>=3&&sk[u]>=.7*L.length&&!/\d/.test(u)); });
     p.kisa=(w.join(" ")||p.ad||p.kod); });
-  return {L,per,yillar,bas,R:RR};
+  return {L,per,bas,R:RR};
 }
 
 /* ====== çizim ====== */
 let G=null;
 function renderAll(){
-  const tl=tedarikciler();
-  $("#tedL").innerHTML=tl.map(t=>`<option value="${esc(t)}">`).join("");
+  const tl=tedarikciler().map(x=>x[0]);
   if(!ST.ted||!tl.includes(ST.ted)) ST.ted=tl.includes("WAXMAN FIBRES LTD")?"WAXMAN FIBRES LTD":(tl[0]||"");
   $("#tedQ").value=ST.ted;
   document.querySelectorAll("#kaynak button").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.v===ST.kay)));
   document.querySelectorAll("#donem button").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.v===ST.don)));
   G=gerceklesen();
-  $("#basY").innerHTML=G.yillar.map(y=>`<option${y===G.bas?" selected":""}>${y}</option>`).join("");
-  renderStats(); renderGer(); renderListeler(); renderArch(); renderPills(); draw();
+  $("#basY").innerHTML=yillar().map(y=>`<option${y===G.bas?" selected":""}>${y}</option>`).join("");
+  renderStats(); renderGer(); renderPills(); draw();
 }
 function renderStats(){
-  const R=G.R, L=ML[ST.ted]||[];
+  const R=G.R;
   const son=R.reduce((m,r)=>r.d>m?r.d:m,"");
   const pbs={}; R.forEach(r=>pbs[r.pb]=(pbs[r.pb]||0)+r.f*(r.q||0));
   $("#stats").innerHTML=[
     [ST.kay==="sip"?"Sipariş satırı":"Fatura satırı",R.length.toLocaleString("tr-TR")+" <small>"+G.bas+" ve sonrası</small>"],
     ["Ürün / kalem",G.L.length],
     ["Toplam miktar",Math.round(R.reduce((s,r)=>s+r.q,0)).toLocaleString("tr-TR")+" <small>kg</small>"],
-    ["Son alım",son?lab(son):"–"],
-    ["Fiyat listesi",L.length?L.reduce((s,g)=>s+g.cols.length,0)+" <small>liste · "+L.length+" tablo</small>":"<small>yok</small>"]
+    ["Son alım",son?lab(son):"–"]
   ].map(([k,v])=>`<div class="stat"><div class="k">${k}</div><div class="v">${v}</div></div>`).join("");
   $("#gAlt").textContent=(ST.kay==="sip"?"Satınalma siparişleri · sipariş tarihine göre":"Kayıtlar (faturalar) · fatura tarihine göre")+" · "+(ST.don==="a"?"aylık":ST.don==="c"?"çeyreklik":"yıllık")+" ortalama";
 }
@@ -316,44 +271,10 @@ function renderGer(){
   $("#gerTbl").innerHTML=h+"</tbody></table>";
 }
 
-/* ---- elle girilen listeler ---- */
-const grp=()=>ML[ST.ted]||[];
-function sortCols(g){ g.cols.sort((a,b)=>a.d<b.d?-1:a.d>b.d?1:0); }
-function renderListeler(){
-  const GR=grp();
-  if(!GR.length){ $("#listeler").innerHTML=`<div class="bos">Bu tedarikçi için girilmiş fiyat listesi yok. Aşağıdan bir liste tablosu ekleyip, gelen her fiyat listesini bir kolon olarak girebilirsin.</div>`; return; }
-  $("#listeler").innerHTML=GR.map((g,gi)=>{ sortCols(g);
-    let h=`<div class="grp"><div class="ghead"><h3>${esc(g.ad)}</h3><span class="pb">${esc(g.pb)} / kg</span><span class="spacer"></span><button class="del" data-g="${gi}" data-act="delgrp" title="Tabloyu sil">tabloyu sil</button></div>`;
-    h+=`<div class="scroll"><table><thead><tr><th class="name">Ürün</th>${g.ek?`<th style="text-align:left">Teslim şekli</th>`:""}`;
-    g.cols.forEach((c,ci)=>{ h+=`<th data-g="${gi}" data-col="${ci}" data-cell="col" title="Tarihi değiştirmek için çift tıkla">${lab(c.d)}<button class="rowbtn del" data-g="${gi}" data-col="${ci}" data-act="delcol" title="Kolonu sil">×</button></th>`; });
-    h+="</tr></thead><tbody>";
-    g.rows.forEach((r,ri)=>{ h+=`<tr><td class="name" data-g="${gi}" data-row="${ri}" data-cell="name">${esc(r.n)}`+(r.t?`<span class="tag" tabindex="0" data-note="${esc(r.t)}">not</span>`:"")
-        +`<button class="rowbtn tag ed" data-g="${gi}" data-row="${ri}" data-act="editnote" title="Notu düzenle">✎</button><button class="rowbtn del" data-g="${gi}" data-row="${ri}" data-act="delrow" title="Satırı sil">×</button></td>`;
-      if(g.ek) h+=`<td class="l" data-g="${gi}" data-row="${ri}" data-cell="extra">${esc(r.term||"")}</td>`;
-      let prev=null; g.cols.forEach(c=>{ const v=r.v[c.d]; const x=hucre(v==null?null:v,prev); if(v!=null) prev=v;
-        h+=`<td class="${x.cls}" data-g="${gi}" data-row="${ri}" data-d="${c.d}" data-cell="price">${x.h}</td>`; });
-      h+="</tr>"; });
-    h+=`</tbody></table></div>`;
-    if(ST.noteOpen&&ST.noteOpen.g===gi){ const r=g.rows[ST.noteOpen.r]; if(r) h+=`<div class="panel"><b>Not — ${esc(r.n)}</b><textarea id="ntx">${esc(r.t||"")}</textarea><div style="display:flex;gap:8px;margin-top:6px"><button class="btn primary" data-g="${gi}" data-act="savenote">Notu kaydet</button><button class="btn" data-act="closenote">Kapat</button></div></div>`; }
-    h+=`<div class="addrow"><label>Yeni liste</label><input class="dt" type="date" id="nc_${gi}"><button class="btn" data-g="${gi}" data-act="addcol">Kolon ekle</button><span style="width:12px"></span>
-      <label>Yeni ürün</label><input class="tin" id="nr_${gi}" placeholder="Ürün adı">${g.ek?`<input class="tin" id="nx_${gi}" placeholder="Teslim şekli">`:""}<button class="btn" data-g="${gi}" data-act="addrow">Satır ekle</button></div></div>`;
-    return h; }).join("");
-}
-function renderArch(){
-  const GR=grp(), it=[];
-  GR.forEach((g,gi)=>g.cols.forEach((c,ci)=>it.push({g,gi,c,ci})));
-  $("#archSec").style.display=it.length?"":"none";
-  it.sort((a,b)=>a.c.d<b.c.d?1:-1);
-  $("#arch").innerHTML=it.map(({g,gi,c,ci})=>{ const n=g.rows.filter(r=>r.v[c.d]!=null).length;
-    return `<div class="it"><div class="dt">${lab(c.d)}</div><div class="tx" data-g="${gi}" data-col="${ci}" data-cell="archnote" title="Düzenlemek için çift tıkla"><b>${esc(g.ad)}</b> · ${n} kalem. ${esc(c.note||"")}</div></div>`; }).join("");
-}
-
 /* ---- grafik: gerçekleşen (aylık ortalama) + liste fiyatları ---- */
 function seriler(){
   const S=[];
   G.L.slice(0,20).forEach(p=>S.push({id:"g|"+p.key,n:p.kisa+" ("+p.pb+")",c:p.c,liste:false,pts:Object.keys(p.pts).sort().map(a=>({d:a+"-15",v:p.pts[a].a/p.pts[a].w}))}));
-  grp().forEach((g,gi)=>g.rows.forEach((r,ri)=>{ const ds=g.cols.map(c=>c.d).filter(d=>r.v[d]!=null);
-    if(ds.length) S.push({id:"l|"+gi+"|"+r.n+"|"+(r.term||""),n:r.n+(r.term?" · "+r.term:"")+" ("+g.pb+")",c:r.c||PALETTE[ri%PALETTE.length],liste:true,pts:ds.map(d=>({d,v:r.v[d]}))}); }));
   return S;
 }
 function renderPills(){
@@ -389,12 +310,27 @@ function draw(){
 }
 
 /* ====== olaylar ====== */
-function tedSec(v){ const tl=tedarikciler(); const t=tl.find(x=>x===v)||tl.find(x=>x.toLocaleLowerCase("tr-TR")===String(v).toLocaleLowerCase("tr-TR"));
-  if(!t) return; ST.ted=t; ST.sel.clear(); ST.noteOpen=null; uiKaydet(); renderAll();
+function tedSec(v){ const tl=tedarikciler().map(x=>x[0]); const t=tl.find(x=>x===v);
+  if(!t) return; ST.ted=t; ST.sel.clear(); uiKaydet(); $("#tedL").hidden=true; renderAll();
   /* açılışta en çok alınan 3 ürün grafikte seçili gelsin */
   G.L.slice(0,3).forEach(p=>ST.sel.add("g|"+p.key)); renderPills(); draw(); }
-$("#tedQ").addEventListener("change",e=>tedSec(e.target.value));
-$("#tedQ").addEventListener("focus",e=>e.target.select());
+/* açılır liste: odaklanınca yazı seçilir ve bütün liste açılır; yazdıkça süzülür */
+let cbI=-1;
+function cbAc(q){ const tl=tedarikciler(), n=String(q||"").toLocaleLowerCase("tr-TR").trim();
+  const L=n?tl.filter(([t])=>t.toLocaleLowerCase("tr-TR").includes(n)):tl; cbI=L.length?0:-1;
+  const box=$("#tedL"); box.hidden=false;
+  box.innerHTML=L.length?L.map(([t,c],i)=>`<div data-t="${esc(t)}" class="${i===0?"on ":""}${t===ST.ted?"sec":""}">${esc(t)}<small>${c} ${ST.kay==="sip"?"sipariş":"fatura"}</small></div>`).join(""):`<div class="yok">Bu adla tedarikçi yok</div>`;
+  if(!n){ const s=box.querySelector(".sec"); if(s){ box.querySelectorAll(".on").forEach(x=>x.classList.remove("on")); s.classList.add("on"); cbI=[...box.children].indexOf(s); s.scrollIntoView({block:"center"}); } } }
+function cbKapat(){ $("#tedL").hidden=true; $("#tedQ").value=ST.ted; }
+$("#tedQ").addEventListener("focus",e=>{ e.target.select(); cbAc(""); });
+$("#tedQ").addEventListener("input",e=>cbAc(e.target.value));
+$("#tedQ").addEventListener("keydown",e=>{ const box=$("#tedL"), it=[...box.querySelectorAll("div[data-t]")];
+  if(e.key==="ArrowDown"||e.key==="ArrowUp"){ e.preventDefault(); if(!it.length) return; cbI=Math.max(0,Math.min(it.length-1,cbI+(e.key==="ArrowDown"?1:-1)));
+    it.forEach((x,i)=>x.classList.toggle("on",i===cbI)); it[cbI].scrollIntoView({block:"nearest"}); }
+  else if(e.key==="Enter"){ e.preventDefault(); if(it[cbI]){ tedSec(it[cbI].dataset.t); e.target.blur(); } }
+  else if(e.key==="Escape"){ cbKapat(); e.target.blur(); } });
+$("#tedL").addEventListener("mousedown",e=>{ const d=e.target.closest("div[data-t]"); if(!d) return; e.preventDefault(); tedSec(d.dataset.t); $("#tedQ").blur(); });
+$("#tedQ").addEventListener("blur",()=>setTimeout(cbKapat,120));
 $("#kaynak").onclick=e=>{ const b=e.target.closest("button"); if(!b) return; ST.kay=b.dataset.v; ST.sel.clear(); uiKaydet(); renderAll(); G.L.slice(0,3).forEach(p=>ST.sel.add("g|"+p.key)); renderPills(); draw(); };
 $("#donem").onclick=e=>{ const b=e.target.closest("button"); if(!b) return; ST.don=b.dataset.v; uiKaydet(); renderAll(); };
 $("#basY").onchange=e=>{ ST.bas=e.target.value; uiKaydet(); renderAll(); };
@@ -407,51 +343,6 @@ $("#csvBtn").onclick=function(){ const {L,per}=G; const rows=[["Ürün","Kod","P
   try{ navigator.clipboard.writeText(t).then(ok).catch(()=>{}); }catch(e){} };
 let rz; addEventListener("resize",()=>{ clearTimeout(rz); rz=setTimeout(draw,150); });
 
-/* liste düzenleme: çift tıkla */
-document.addEventListener("dblclick",e=>{
-  const cell=e.target.closest("[data-cell]"); if(!cell||cell.querySelector("input,textarea")) return;
-  const gi=+cell.dataset.g, g=grp()[gi], t=cell.dataset.cell, ri=cell.dataset.row; if(!g) return;
-  if(t==="price"){ const v=g.rows[+ri].v[cell.dataset.d]; cell.className=""; cell.innerHTML=`<input class="cell" inputmode="decimal" value="${v==null?"":String(v).replace(".",",")}" data-g="${gi}" data-row="${ri}" data-d="${cell.dataset.d}" data-act="price">`; }
-  else if(t==="name") cell.innerHTML=`<input class="nin" value="${esc(g.rows[+ri].n)}" data-g="${gi}" data-row="${ri}" data-act="rowname">`;
-  else if(t==="extra") cell.innerHTML=`<input class="tin" value="${esc(g.rows[+ri].term||"")}" data-g="${gi}" data-row="${ri}" data-act="rowextra">`;
-  else if(t==="col") cell.innerHTML=`<input class="dt" type="date" value="${g.cols[+cell.dataset.col].d}" data-g="${gi}" data-col="${cell.dataset.col}" data-act="coldate">`;
-  else if(t==="archnote") cell.innerHTML=`<textarea data-g="${gi}" data-col="${cell.dataset.col}" data-act="colnote">${esc(g.cols[+cell.dataset.col].note||"")}</textarea>`;
-  else return;
-  const inp=cell.querySelector("input,textarea"); if(inp){ inp.focus(); if(inp.select&&inp.type!=="date") inp.select(); }
-});
-document.addEventListener("keydown",e=>{ const a=e.target.dataset&&e.target.dataset.act; if(!a) return;
-  if(e.key==="Enter"&&e.target.tagName!=="TEXTAREA"){ e.preventDefault(); e.target.blur(); } if(e.key==="Escape") e.target.blur(); });
-document.addEventListener("input",e=>{ const t=e.target,a=t.dataset.act; if(!a) return; const g=grp()[+t.dataset.g]; if(!g) return;
-  if(a==="price"){ const r=g.rows[+t.dataset.row],d=t.dataset.d,v=t.value.trim(); if(v==="") delete r.v[d]; else { const n=num(v); if(n==null) return; r.v[d]=n; } save(); }
-  else if(a==="rowname"){ g.rows[+t.dataset.row].n=t.value; save(); }
-  else if(a==="rowextra"){ g.rows[+t.dataset.row].term=t.value; save(); }
-  else if(a==="colnote"){ g.cols[+t.dataset.col].note=t.value; save(); } });
-document.addEventListener("focusout",e=>{ const a=e.target.dataset&&e.target.dataset.act; if(!a||!["price","rowname","rowextra","colnote"].includes(a)) return;
-  setTimeout(()=>{ renderListeler(); renderArch(); renderStats(); renderPills(); draw(); },0); });
-document.addEventListener("change",e=>{ const t=e.target; if(t.dataset.act!=="coldate") return;
-  const g=grp()[+t.dataset.g], ci=+t.dataset.col, old=g.cols[ci].d, nd=t.value; if(!nd||nd===old) return;
-  if(g.cols.some((c,i)=>i!==ci&&c.d===nd)){ renderListeler(); return; }
-  g.cols[ci].d=nd; g.rows.forEach(r=>{ if(r.v[old]!=null){ r.v[nd]=r.v[old]; delete r.v[old]; } }); save(); renderAll(); });
-document.addEventListener("click",e=>{
-  const b=e.target.closest("[data-act]"); if(!b||b.tagName==="INPUT"||b.tagName==="TEXTAREA") return;
-  const a=b.dataset.act, gi=+b.dataset.g, g=grp()[gi];
-  if(a==="addgrp"){ const ad=$("#ylAd").value.trim(); if(!ad||!ST.ted) return;
-    (ML[ST.ted]=ML[ST.ted]||[]).push({ad,pb:$("#ylPb").value,ek:$("#ylEk").checked,cols:[],rows:[]}); $("#ylAd").value=""; save(); renderAll(); return; }
-  if(!g&&a!=="closenote") return;
-  if(a==="addcol"){ const d=$("#nc_"+gi).value; if(!d||g.cols.some(c=>c.d===d)) return; g.cols.push({d,note:""}); save(); renderAll(); }
-  else if(a==="addrow"){ const n=$("#nr_"+gi).value.trim(); if(!n) return; g.rows.push({n,c:PALETTE[g.rows.length%PALETTE.length],t:"",term:g.ek?($("#nx_"+gi).value||"").trim():"",v:{}}); save(); renderAll(); }
-  else if(a==="delrow"||a==="delcol"||a==="delgrp"){
-    if(b.classList.contains("armed")){
-      if(a==="delrow") g.rows.splice(+b.dataset.row,1);
-      else if(a==="delcol"){ const d=g.cols[+b.dataset.col].d; g.cols.splice(+b.dataset.col,1); g.rows.forEach(r=>delete r.v[d]); }
-      else { ML[ST.ted].splice(gi,1); if(!ML[ST.ted].length) delete ML[ST.ted]; }
-      ST.noteOpen=null; save(); renderAll();
-    } else { document.querySelectorAll(".del.armed").forEach(x=>{ x.classList.remove("armed"); x.textContent=x.dataset.act==="delgrp"?"tabloyu sil":"×"; });
-      b.classList.add("armed"); b.textContent="sil?"; setTimeout(()=>{ b.classList.remove("armed"); b.textContent=a==="delgrp"?"tabloyu sil":"×"; },3000); } }
-  else if(a==="editnote"){ ST.noteOpen={g:gi,r:+b.dataset.row}; renderListeler(); const t=$("#ntx"); t&&t.focus(); }
-  else if(a==="savenote"){ g.rows[ST.noteOpen.r].t=$("#ntx").value.trim(); ST.noteOpen=null; save(); renderListeler(); }
-  else if(a==="closenote"){ ST.noteOpen=null; renderListeler(); }
-});
 /* not balonu */
 (function(){ const tip=document.createElement("div"); tip.className="tip"; tip.hidden=true; document.body.appendChild(tip);
   const show=el=>{ tip.textContent=el.dataset.note; tip.hidden=false; const r=el.getBoundingClientRect(),tr=tip.getBoundingClientRect();
@@ -463,6 +354,6 @@ document.addEventListener("click",e=>{
 /* başlangıç */
 (async()=>{ stamp("Yükleniyor…"); await siparisleriOku(); faturalariOku(); stamp("");
   renderAll(); if(!ST.sel.size){ G.L.slice(0,3).forEach(p=>ST.sel.add("g|"+p.key)); renderPills(); draw(); }
-  if(!localStorage.getItem(KEY)) save(); })();
+})();
 </script>
 </html>
