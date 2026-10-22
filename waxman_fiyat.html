@@ -55,6 +55,16 @@ section{margin-top:16px;background:var(--surface);border:1px solid var(--line);b
 .pill i{font-style:normal;font-size:10.5px;color:var(--edit);border:1px solid var(--edit);border-radius:3px;padding:0 4px}
 .chartbox{padding:10px 16px 6px}
 svg{display:block;width:100%;height:auto}
+#chart{position:relative}
+.gTip{position:absolute;z-index:5;background:#fff;border:1px solid var(--line);border-radius:6px;box-shadow:0 8px 22px rgba(0,0,0,.16);padding:8px 11px;font-size:13px;pointer-events:none;min-width:220px;max-width:420px}
+.gTip .t{font-weight:700;margin-bottom:4px}
+.gTip div:not(.t){display:flex;align-items:center;gap:7px;padding:1px 0}
+.gTip i,.gLeg i{display:inline-block;width:14px;height:4px;border-radius:2px;flex:0 0 auto}
+.gTip b{margin-left:auto;padding-left:12px;font-variant-numeric:tabular-nums}
+.gLeg{display:flex;flex-wrap:wrap;gap:6px 18px;padding:8px 4px 0;font-size:13px}
+.gLeg span{display:flex;align-items:center;gap:7px}
+.gLeg b{font-variant-numeric:tabular-nums}
+.gLeg small{color:var(--fg-3)}
 .note{font-size:12.5px;color:var(--fg-2);padding:6px 16px 12px;margin:0}
 .note b{color:var(--fg)}
 .scroll{overflow:auto;max-height:calc(100vh - 220px)}
@@ -274,7 +284,7 @@ function renderGer(){
 /* ---- grafik: gerçekleşen (aylık ortalama) + liste fiyatları ---- */
 function seriler(){
   const S=[];
-  G.L.slice(0,20).forEach(p=>S.push({id:"g|"+p.key,n:p.kisa+" ("+p.pb+")",c:p.c,liste:false,pts:Object.keys(p.pts).sort().map(a=>({d:a+"-15",v:p.pts[a].a/p.pts[a].w}))}));
+  G.L.slice(0,20).forEach(p=>S.push({id:"g|"+p.key,pb:p.pb,n:p.kisa+" ("+p.pb+")",c:p.c,liste:false,pts:Object.keys(p.pts).sort().map(a=>({d:a+"-15",v:p.pts[a].a/p.pts[a].w}))}));
   return S;
 }
 function renderPills(){
@@ -285,28 +295,64 @@ function renderPills(){
 function niceStep(r){const e=Math.pow(10,Math.floor(Math.log10(r||1)));const m=(r||1)/e;return (m<1.5?1:m<3?2:m<7?5:10)*e}
 function draw(){
   const items=seriler().filter(s=>ST.sel.has(s.id)&&s.pts.length);
-  const cw=($("#chart").clientWidth||980), W=Math.max(600,cw), H=Math.max(340,Math.min(440,Math.round(W*.3))), ml=56,mt=26,mb=40;
-  const mr=26+(items.length?Math.min(220,8+7*Math.max(...items.map(i=>i.n.length))):0);
+  const box=$("#chart"), cw=(box.clientWidth||980), W=Math.max(640,cw), H=Math.max(380,Math.min(500,Math.round(W*.32))), ml=70,mr=30,mt=24,mb=58;
+  const pb=[...new Set(items.map(i=>i.pb))].join(" / ")||"";
   const ys=items.flatMap(i=>i.pts.map(p=>p.v)), ts=items.flatMap(i=>i.pts.map(p=>+new Date(p.d)));
-  let mn=ys.length?Math.min(...ys):0,mx=ys.length?Math.max(...ys):1; if(mn===mx){mn-=1;mx+=1} const pd=(mx-mn)*.12; mn=Math.max(0,mn-pd); mx+=pd;
-  const t0=ts.length?Math.min(...ts):0,t1=ts.length?Math.max(...ts):1;
-  const X=d=>t1===t0?ml+(W-ml-mr)/2:ml+(+new Date(d)-t0)/(t1-t0)*(W-ml-mr), Y=v=>mt+(1-(v-mn)/(mx-mn))*(H-mt-mb);
-  let s=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Fiyat seyri">`;
-  const step=niceStep((mx-mn)/5);
-  for(let v=Math.ceil(mn/step)*step;v<=mx+1e-9;v+=step){ s+=`<line x1="${ml}" y1="${Y(v).toFixed(1)}" x2="${W-mr}" y2="${Y(v).toFixed(1)}" stroke="var(--line)"/><text x="${ml-8}" y="${(Y(v)+4).toFixed(1)}" text-anchor="end" fill="var(--fg-2)" font-size="11">${fmt(v)}</text>`; }
-  if(ts.length){ const y0=new Date(t0).getFullYear(), y1=new Date(t1).getFullYear(), adim=Math.max(1,Math.ceil((y1-y0+1)/14));
-    for(let y=y0;y<=y1+1;y+=adim){ const d=y+"-01-01", x=X(d); if(x<ml-1||x>W-mr+1) continue;
-      s+=`<line x1="${x.toFixed(1)}" y1="${mt}" x2="${x.toFixed(1)}" y2="${H-mb}" stroke="var(--line)" opacity=".6"/><text x="${x.toFixed(1)}" y="${H-mb+16}" text-anchor="middle" fill="var(--fg-2)" font-size="11">${y}</text>`; } }
-  s+=`<line x1="${ml}" y1="${H-mb}" x2="${W-mr}" y2="${H-mb}" stroke="var(--fg-2)"/>`;
-  items.forEach((i,k)=>{
-    s+=`<polyline points="${i.pts.map(p=>X(p.d).toFixed(1)+","+Y(p.v).toFixed(1)).join(" ")}" fill="none" stroke="${i.c}" stroke-width="2.2" stroke-linejoin="round" ${i.liste?'stroke-dasharray="6 4"':""}/>`;
-    i.pts.forEach(p=>{ s+=`<circle cx="${X(p.d).toFixed(1)}" cy="${Y(p.v).toFixed(1)}" r="3" fill="${i.c}"><title>${esc(i.n)} · ${lab(p.d.slice(0,i.liste?10:7))} · ${fmt(p.v)}</title></circle>`;
-      if(ST.lbl&&i.pts.length<=24) s+=`<text x="${X(p.d).toFixed(1)}" y="${(Y(p.v)+(k%2?16:-8)).toFixed(1)}" text-anchor="middle" fill="${i.c}" stroke="#fff" stroke-width="3" paint-order="stroke" font-size="10" font-weight="600">${fmt(p.v)}</text>`; }); });
-  const ends=items.map(i=>{const l=i.pts[i.pts.length-1];return {n:i.n,c:i.c,x:X(l.d),y:Y(l.v)}}).sort((a,b)=>a.y-b.y);
-  for(let k=1;k<ends.length;k++) if(ends[k].y-ends[k-1].y<15) ends[k].y=ends[k-1].y+15;
-  ends.forEach(e=>{ s+=`<text x="${(e.x+10).toFixed(1)}" y="${(e.y+4).toFixed(1)}" fill="${e.c}" stroke="#fff" stroke-width="3.5" paint-order="stroke" font-size="12.5" font-weight="700">${esc(e.n.length>34?e.n.slice(0,33)+"…":e.n)}</text>`; });
-  if(!items.length) s+=`<text x="${W/2}" y="${H/2}" text-anchor="middle" fill="var(--fg-2)" font-size="14">Görüntülemek için yukarıdan ürün seç</text>`;
-  $("#chart").innerHTML=s+"</svg>";
+  let mn=ys.length?Math.min(...ys):0,mx=ys.length?Math.max(...ys):1; if(mn===mx){mn-=1;mx+=1} const pd=(mx-mn)*.15; mn=Math.max(0,mn-pd); mx+=pd;
+  /* zaman ekseni ayın başından sonraki ayın başına */
+  let t0=ts.length?Math.min(...ts):0,t1=ts.length?Math.max(...ts):1;
+  if(ts.length){ const a=new Date(t0), b=new Date(t1); t0=+new Date(a.getFullYear(),a.getMonth(),1); t1=+new Date(b.getFullYear(),b.getMonth()+1,1); }
+  const X=d=>ml+(+new Date(d)-t0)/(t1-t0)*(W-ml-mr), Y=v=>mt+(1-(v-mn)/(mx-mn))*(H-mt-mb);
+  let s=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Fiyat seyri" style="font-family:IBM Plex Sans,Segoe UI,Arial,sans-serif">`;
+  /* yatay ızgara + fiyat ekseni */
+  const step=niceStep((mx-mn)/6);
+  for(let v=Math.ceil(mn/step)*step;v<=mx+1e-9;v+=step){ const y=Y(v).toFixed(1);
+    s+=`<line x1="${ml}" y1="${y}" x2="${W-mr}" y2="${y}" stroke="#E3E8EE"/><text x="${ml-10}" y="${(+y+4).toFixed(1)}" text-anchor="end" fill="#3A4856" font-size="12.5">${fmt(v)}</text>`; }
+  s+=`<text transform="translate(16 ${(mt+(H-mt-mb)/2).toFixed(0)}) rotate(-90)" text-anchor="middle" fill="#5A6875" font-size="12" font-weight="600">Birim fiyat${pb?" ("+esc(pb)+" / kg)":""}</text>`;
+  /* tarih ekseni: aralığa göre 1/2/3/6/12 ayda bir etiket, yıl başları koyu çizgi */
+  if(ts.length){ const ayS=Math.round((t1-t0)/2.63e9), adim=[1,2,3,6,12].find(a=>ayS/a<=16)||12;
+    const a=new Date(t0); let y=a.getFullYear(), m=a.getMonth();
+    while(+new Date(y,m,1)<=t1){ const d=new Date(y,m,1), x=X(d), yb=m===0;
+      if(yb) s+=`<line x1="${x.toFixed(1)}" y1="${mt}" x2="${x.toFixed(1)}" y2="${H-mb}" stroke="#C3CCD6" stroke-width="1.2"/>`;
+      if(m%adim===0){ if(!yb) s+=`<line x1="${x.toFixed(1)}" y1="${mt}" x2="${x.toFixed(1)}" y2="${H-mb}" stroke="#EEF1F4"/>`;
+        s+=`<line x1="${x.toFixed(1)}" y1="${H-mb}" x2="${x.toFixed(1)}" y2="${H-mb+5}" stroke="#7D8A96"/>`;
+        s+=`<text x="${x.toFixed(1)}" y="${H-mb+20}" text-anchor="middle" fill="#3A4856" font-size="12">${adim>=12?y:AYK[m]}</text>`;
+        if(adim<12&&(yb||+d===+new Date(t0))) s+=`<text x="${x.toFixed(1)}" y="${H-mb+38}" text-anchor="middle" fill="#1E2A36" font-size="12.5" font-weight="700">${y}</text>`; }
+      m++; if(m>11){m=0;y++;} } }
+  s+=`<line x1="${ml}" y1="${H-mb}" x2="${W-mr}" y2="${H-mb}" stroke="#5A6875" stroke-width="1.2"/>`;
+  /* seriler: 6 aydan uzun alım boşlukları kesik çizgiyle */
+  items.forEach(i=>{ for(let k=1;k<i.pts.length;k++){ const a=i.pts[k-1],b=i.pts[k], gap=(+new Date(b.d)-+new Date(a.d))>1.6e10;
+      s+=`<line x1="${X(a.d).toFixed(1)}" y1="${Y(a.v).toFixed(1)}" x2="${X(b.d).toFixed(1)}" y2="${Y(b.v).toFixed(1)}" stroke="${i.c}" stroke-width="${gap?2:3}" stroke-linecap="round" ${gap?'stroke-dasharray="5 5" opacity=".55"':""}/>`; } });
+  /* fiyat etiketleri: fiyatın değiştiği noktalarda ve sonda; üst üste binenler atlanır (son fiyat önceliklidir) */
+  const aday=[];
+  items.forEach((i,k)=>{ let onc=null;
+    i.pts.forEach((p,n)=>{ const x=X(p.d), y=Y(p.v);
+      s+=`<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="4.2" fill="${i.c}" stroke="#fff" stroke-width="1.6"/>`;
+      const son=n===i.pts.length-1, degisti=onc==null||Math.abs(p.v-onc)>=0.005;
+      if(degisti||son){ const t=fmt(p.v), w=t.length*7.2+4;
+        [k%2?19:-10,k%2?-10:19].forEach((dy,j)=>aday.push({x,y:y+dy,w,t,c:i.c,o:(son?20:Math.abs(p.v-(onc??p.v))>0?10:5)-j,id:i.n+n})); }
+      onc=p.v; }); });
+  if(ST.lbl){ const kon=[], yer=new Set(); aday.sort((a,b)=>b.o-a.o);
+    for(const a of aday){ if(yer.has(a.id)) continue;
+      if(kon.some(b=>Math.abs(a.x-b.x)<(a.w+b.w)/2&&Math.abs(a.y-b.y)<14)) continue;
+      kon.push(a); yer.add(a.id);
+      s+=`<text x="${a.x.toFixed(1)}" y="${a.y.toFixed(1)}" text-anchor="middle" fill="${a.c}" stroke="#fff" stroke-width="4" paint-order="stroke" font-size="12" font-weight="700">${a.t}</text>`; } }
+  if(!items.length) s+=`<text x="${W/2}" y="${H/2}" text-anchor="middle" fill="#5A6875" font-size="15">Görüntülemek için yukarıdan ürün seç</text>`;
+  s+=`<line id="gCiz" x1="0" y1="${mt}" x2="0" y2="${H-mb}" stroke="#1E2A36" stroke-width="1" stroke-dasharray="3 3" visibility="hidden"/>`;
+  s+=`<rect id="gAlan" x="${ml}" y="${mt}" width="${W-ml-mr}" height="${H-mt-mb}" fill="transparent"/>`;
+  box.innerHTML=s+`</svg><div class="gTip" id="gTip" hidden></div>`+
+    (items.length?`<div class="gLeg">${items.map(i=>{ const l=i.pts[i.pts.length-1]; return `<span><i style="background:${i.c}"></i>${esc(i.n)} <b>${fmt(l.v)}</b> <small>son: ${lab(l.d.slice(0,7))}</small></span>`; }).join("")}</div>`:"");
+  /* imleçle gezince o aydaki fiyatlar */
+  const svg=box.querySelector("svg"), tip=$("#gTip"), ciz=svg.querySelector("#gCiz");
+  const aylar=[...new Set(items.flatMap(i=>i.pts.map(p=>p.d)))].sort();
+  svg.querySelector("#gAlan").addEventListener("mousemove",e=>{
+    if(!aylar.length) return; const r=svg.getBoundingClientRect(), vx=(e.clientX-r.left)*W/r.width;
+    let en=aylar[0]; for(const d of aylar) if(Math.abs(X(d)-vx)<Math.abs(X(en)-vx)) en=d;
+    const x=X(en); ciz.setAttribute("x1",x); ciz.setAttribute("x2",x); ciz.setAttribute("visibility","visible");
+    const sat=items.map(i=>{ const p=i.pts.find(q=>q.d===en); return p?`<div><i style="background:${i.c}"></i>${esc(i.n)}<b>${fmt(p.v)}</b></div>`:""; }).join("");
+    tip.innerHTML=`<div class="t">${AYK[+en.slice(5,7)-1]} ${en.slice(0,4)}</div>${sat}`; tip.hidden=false;
+    const px=x*r.width/W, bw=tip.offsetWidth; tip.style.left=Math.max(4,Math.min(px+14,r.width-bw-4)-(px+14+bw>r.width?bw+28:0))+"px"; tip.style.top=(mt*r.height/H+6)+"px"; });
+  svg.querySelector("#gAlan").addEventListener("mouseleave",()=>{ tip.hidden=true; ciz.setAttribute("visibility","hidden"); });
 }
 
 /* ====== olaylar ====== */
