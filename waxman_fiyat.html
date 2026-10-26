@@ -215,11 +215,16 @@ function uiKaydet(){ if(GOM) return; try{ localStorage.setItem("ui",JSON.stringi
 
 const kaynak=()=>ST.kay==="sip"?SIP:FAT;
 function yillar(){ return [...new Set(kaynak().map(r=>r.d.slice(0,4)))].sort(); }
-function basYil(){ const y=yillar(); return ST.bas&&y.includes(ST.bas)?ST.bas:(y.length>4?y[y.length-4]:y[0]||""); }
+/* seçili tedarikçinin / madde kodunun alımı olan yıllar (seçim yoksa bütün yıllar) */
+function secYillari(){ const v=secili(); const R=v?kaynak().filter(r=>ST.mod==="kod"?r.kod===v:r.ted===v):[];
+  return R.length?[...new Set(R.map(r=>r.d.slice(0,4)))].sort():yillar(); }
+/* "*" = bütün yıllar; seçili yıl bu tedarikçide/kodda yoksa son 4 alım yılı */
+function basYil(){ const y=secYillari(); if(ST.bas==="*") return y[0]||"";
+  return ST.bas&&y.includes(ST.bas)?ST.bas:(y.length>4?y[y.length-4]:y[0]||""); }
 /* seçili başlangıç yılından sonra alımı olan tedarikçiler (adet: o dönemdeki satır sayısı) */
 /* seçenekler: [değer, adet, görünen ad]; tedarikçi ya da madde kodu */
 function tedarikciler(){
-  const b=basYil(), c=new Map(), kodMu=ST.mod==="kod";
+  const b=ST.bas==="*"?"":basYil(), c=new Map(), kodMu=ST.mod==="kod";
   kaynak().forEach(r=>{ if(r.d.slice(0,4)<b) return; const k=kodMu?r.kod:r.ted; if(!k) return;
     const o=c.get(k)||{n:0,d:"",ad:""}; o.n++; if(r.d>=o.d){ o.d=r.d; o.ad=r.ad; } c.set(k,o); });
   return [...c.entries()].map(([k,o])=>[k,o.n,kodMu?k+" — "+o.ad:k]).sort((a,b)=>a[0].localeCompare(b[0],"tr"));
@@ -262,7 +267,7 @@ function renderAll(){
   document.querySelectorAll("#kaynak button").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.v===ST.kay)));
   document.querySelectorAll("#donem button").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.v===ST.don)));
   G=gerceklesen();
-  $("#basY").innerHTML=yillar().map(y=>`<option${y===G.bas?" selected":""}>${y}</option>`).join("");
+  $("#basY").innerHTML=`<option value="*"${ST.bas==="*"?" selected":""}>Tüm yıllar</option>`+secYillari().map(y=>`<option${ST.bas!=="*"&&y===G.bas?" selected":""}>${y}</option>`).join("");
   renderStats(); renderGer(); renderPills(); draw();
 }
 function renderStats(){
@@ -270,7 +275,7 @@ function renderStats(){
   const son=R.reduce((m,r)=>r.d>m?r.d:m,"");
   const pbs={}; R.forEach(r=>pbs[r.pb]=(pbs[r.pb]||0)+r.f*(r.q||0));
   $("#stats").innerHTML=[
-    [ST.kay==="sip"?"Sipariş satırı":"Fatura satırı",R.length.toLocaleString("tr-TR")+" <small>"+G.bas+" ve sonrası</small>"],
+    [ST.kay==="sip"?"Sipariş satırı":"Fatura satırı",R.length.toLocaleString("tr-TR")+" <small>"+(ST.bas==="*"?"tüm yıllar":G.bas+" ve sonrası")+"</small>"],
     [ST.mod==="kod"?"Tedarikçi / teslim":"Ürün / kalem",G.L.length],
     ["Toplam miktar",Math.round(R.reduce((s,r)=>s+r.q,0)).toLocaleString("tr-TR")+" <small>kg</small>"],
     ["Son alım",son?lab(son):"–"]
@@ -416,7 +421,7 @@ let rz; addEventListener("resize",()=>{ clearTimeout(rz); rz=setTimeout(draw,150
 /* başlangıç */
 (async()=>{ stamp("Yükleniyor…"); faturalariOku(); await siparisleriOku(); stamp("");
   if(GOM){ /* Satınalma › Alım Dağılımı'ndan açıldı: tek madde kodu, bütün geçmişiyle */
-    ST.mod="kod"; ST.kod=GOM.kod; const y=kayit().map(r=>r.d.slice(0,4)).sort(); ST.bas=y[0]||"";
+    ST.mod="kod"; ST.kod=GOM.kod; ST.bas="*";
     document.body.classList.add("gomulu"); }
   renderAll(); if(!ST.sel.size){ G.L.slice(0,3).forEach(p=>ST.sel.add("g|"+p.key)); renderPills(); draw(); }
 })();
