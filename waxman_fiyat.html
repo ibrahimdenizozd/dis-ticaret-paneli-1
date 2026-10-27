@@ -14,16 +14,12 @@
 body{background:var(--bg);color:var(--fg);font:14px/1.5 var(--f);margin:0}
 .wrap{padding:18px 20px 60px}
 body.gomulu .wrap{padding:12px 16px 30px}
-body.gomulu h1,body.gomulu .sub,body.gomulu #mod,body.gomulu #secAlan{display:none}
+body.gomulu h1,body.gomulu .sub,body.gomulu #mod,body.gomulu #cb{display:none}
 h1{font-size:22px;font-weight:700;letter-spacing:-.01em;margin:0}
 .sub{color:var(--fg-2);margin:4px 0 0;font-size:13.5px}
 .secim{display:flex;align-items:center;gap:10px 14px;flex-wrap:wrap;margin-top:14px;padding:12px 16px;background:var(--surface);border:1px solid var(--line);border-radius:4px}
 .secim label{font-size:13px;font-weight:600;color:var(--fg-2)}
-.secAlan{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-.secAlan .kl{font-size:12px;font-weight:600;color:var(--fg-2)}
 .cb{position:relative;width:min(480px,100%)}
-.cb.dar{width:132px}.cb.dar input{font-size:14px}
-.cb.dar .cbl{min-width:360px}
 .cb input{font:inherit;font-size:15px;font-weight:600;padding:6px 30px 6px 10px;border:1px solid var(--line);border-radius:4px;width:100%;color:var(--fg)}
 .cb .ok{position:absolute;right:10px;top:50%;transform:translateY(-50%);color:var(--fg-3);pointer-events:none}
 .cbl{position:absolute;left:0;right:0;top:calc(100% + 2px);max-height:360px;overflow:auto;background:#fff;border:1px solid var(--line);border-radius:4px;box-shadow:0 10px 24px rgba(0,0,0,.15);z-index:30}
@@ -123,10 +119,10 @@ textarea{width:100%;min-height:70px;font:inherit;font-size:13px;border:1px solid
 
 <div class="wrap">
   <h1>Tedarikçi Fiyat Arşivi</h1>
-  <p class="sub">Tedarikçi, madde kodu (KOD1–KOD4) ya da madde tanımı seç: Satınalma siparişlerinden (ya da Kayıtlar'daki faturalardan) fiyat geçmişi kendiliğinden çıkar. Madde kodu seçince satırlar o maddeyi satan tedarikçiler olur.</p>
+  <p class="sub">Tedarikçi ya da madde kodu seç: Satınalma siparişlerinden (ya da Kayıtlar'daki faturalardan) fiyat geçmişi kendiliğinden çıkar. Madde kodu seçince satırlar o maddeyi satan tedarikçiler olur.</p>
   <div class="secim">
-    <span class="seg" id="mod"><button data-v="ted" aria-pressed="true">Tedarikçi</button><button data-v="kod" aria-pressed="false">Madde kodu</button><button data-v="tanim" aria-pressed="false">Madde tanımı</button></span>
-    <div id="secAlan" class="secAlan"></div>
+    <span class="seg" id="mod"><button data-v="ted" aria-pressed="true">Tedarikçi</button><button data-v="kod" aria-pressed="false">Madde kodu</button></span>
+    <div class="cb" id="cb"><input id="tedQ" placeholder="Yaz ya da seç…" autocomplete="off"><span class="ok">▾</span><div class="cbl" id="tedL" hidden></div></div>
     <label>Kaynak</label>
     <span class="seg" id="kaynak"><button data-v="sip" aria-pressed="true" title="Satınalma sekmesindeki siparişler: fiyat sipariş tarihinde">Siparişler</button><button data-v="fat" aria-pressed="false" title="Satınalma › Kayıtlar: fiyat fatura tarihinde">Faturalar</button></span>
     <label>Dönem</label>
@@ -213,35 +209,28 @@ function faturalariOku(){
 }
 
 /* ====== durum ====== */
-const ST={mod:"ted",k:{k1:"",k2:"",k3:"",k4:""},tanim:"",ted:"",kay:"sip",don:"c",bas:"",sel:new Set(),lbl:true,noteOpen:null};
-if(!GOM) try{ const o=JSON.parse(localStorage.getItem("ui")||"{}"); Object.assign(ST,{mod:["ted","kod","tanim"].includes(o.mod)?o.mod:"ted",k:o.k&&typeof o.k==="object"?{k1:"",k2:"",k3:"",k4:"",...o.k}:(o.kod?Object.fromEntries(String(o.kod).split("-").map((v,i)=>["k"+(i+1),v])):{k1:"",k2:"",k3:"",k4:""}),tanim:o.tanim||"",ted:o.ted||"",kay:o.kay||"sip",don:o.don||"c",bas:o.bas||""}); }catch(e){}
-function uiKaydet(){ if(GOM) return; try{ localStorage.setItem("ui",JSON.stringify({mod:ST.mod,k:ST.k,tanim:ST.tanim,ted:ST.ted,kay:ST.kay,don:ST.don,bas:ST.bas})); }catch(e){} }
+const ST={mod:"ted",kod:"",ted:"",kay:"sip",don:"c",bas:"",sel:new Set(),lbl:true,noteOpen:null};
+if(!GOM) try{ const o=JSON.parse(localStorage.getItem("ui")||"{}"); Object.assign(ST,{mod:o.mod||"ted",kod:o.kod||"",ted:o.ted||"",kay:o.kay||"sip",don:o.don||"c",bas:o.bas||""}); }catch(e){}
+function uiKaydet(){ if(GOM) return; try{ localStorage.setItem("ui",JSON.stringify({mod:ST.mod,kod:ST.kod,ted:ST.ted,kay:ST.kay,don:ST.don,bas:ST.bas})); }catch(e){} }
 
 const kaynak=()=>ST.kay==="sip"?SIP:FAT;
 function yillar(){ return [...new Set(kaynak().map(r=>r.d.slice(0,4)))].sort(); }
-const KK=["k1","k2","k3","k4"];
-const tnm=r=>String(r.ad||"").toLocaleUpperCase("tr-TR").replace(/\s+/g," ").trim();
-const kp=(r,i)=>(String(r.kod||"").split("-")[i]||"");
-/* madde kodu süzgeci: seçili KOD1-4 parçaları (haric verilen parça yok sayılır) */
-const kodUyar=(r,haric)=>!!r.kod&&KK.every((k,i)=>k===haric||!ST.k[k]||kp(r,i)===ST.k[k]);
-const secVar=()=>ST.mod==="ted"?!!ST.ted:ST.mod==="tanim"?!!ST.tanim:KK.some(k=>ST.k[k]);
-const kayit=()=>!secVar()?[]:kaynak().filter(r=>ST.mod==="ted"?r.ted===ST.ted:ST.mod==="tanim"?tnm(r)===ST.tanim:kodUyar(r));
-/* seçili tedarikçinin / kodun / tanımın alımı olan yıllar (seçim yoksa bütün yıllar) */
-function secYillari(){ const R=kayit(); return R.length?[...new Set(R.map(r=>r.d.slice(0,4)))].sort():yillar(); }
-/* "*" = bütün yıllar; seçili yıl bu seçimde yoksa son 4 alım yılı */
+/* seçili tedarikçinin / madde kodunun alımı olan yıllar (seçim yoksa bütün yıllar) */
+function secYillari(){ const v=secili(); const R=v?kaynak().filter(r=>ST.mod==="kod"?r.kod===v:r.ted===v):[];
+  return R.length?[...new Set(R.map(r=>r.d.slice(0,4)))].sort():yillar(); }
+/* "*" = bütün yıllar; seçili yıl bu tedarikçide/kodda yoksa son 4 alım yılı */
 function basYil(){ const y=secYillari(); if(ST.bas==="*") return y[0]||"";
   return ST.bas&&y.includes(ST.bas)?ST.bas:(y.length>4?y[y.length-4]:y[0]||""); }
-/* seçenekler: [değer, adet, görünen ad] — başlangıç yılından sonra alımı olanlar; KOD kutuları birbirine göre daralır */
-function secenek(alan){
-  const b=ST.bas==="*"?"":basYil(), c=new Map(), ki=KK.indexOf(alan);
-  kaynak().forEach(r=>{ if(r.d.slice(0,4)<b) return;
-    if(ki>=0&&!kodUyar(r,alan)) return;
-    const v=alan==="ted"?r.ted:alan==="tanim"?tnm(r):kp(r,ki); if(!v) return;
-    const o=c.get(v)||{n:0,d:"",ad:""}; o.n++; if(r.d>=o.d){ o.d=r.d; o.ad=r.ad; } c.set(v,o); });
-  return [...c.entries()].map(([v,o])=>[v,o.n,ki>=2?v+" — "+o.ad:v]).sort((a,b)=>a[0].localeCompare(b[0],"tr"));
+/* seçili başlangıç yılından sonra alımı olan tedarikçiler (adet: o dönemdeki satır sayısı) */
+/* seçenekler: [değer, adet, görünen ad]; tedarikçi ya da madde kodu */
+function tedarikciler(){
+  const b=ST.bas==="*"?"":basYil(), c=new Map(), kodMu=ST.mod==="kod";
+  kaynak().forEach(r=>{ if(r.d.slice(0,4)<b) return; const k=kodMu?r.kod:r.ted; if(!k) return;
+    const o=c.get(k)||{n:0,d:"",ad:""}; o.n++; if(r.d>=o.d){ o.d=r.d; o.ad=r.ad; } c.set(k,o); });
+  return [...c.entries()].map(([k,o])=>[k,o.n,kodMu?k+" — "+o.ad:k]).sort((a,b)=>a[0].localeCompare(b[0],"tr"));
 }
-function tedarikciler(){ return secenek(ST.mod==="ted"?"ted":ST.mod==="tanim"?"tanim":"k4"); }
-const secili=()=>ST.mod==="ted"?ST.ted:ST.mod==="tanim"?ST.tanim:KK.map(k=>ST.k[k]).filter(Boolean).join("-");
+const secili=()=>ST.mod==="kod"?ST.kod:ST.ted;
+const kayit=()=>kaynak().filter(r=>ST.mod==="kod"?r.kod===ST.kod:r.ted===ST.ted);
 const donemK=d=>ST.don==="a"?d.slice(0,7):ST.don==="c"?d.slice(0,4)+"-Ç"+Math.ceil(+d.slice(5,7)/3):d.slice(0,4);
 const donemT=k=>ST.don==="a"?AYK[+k.slice(5,7)-1]+" "+k.slice(2,4):ST.don==="c"?k.slice(5)+" "+k.slice(2,4):k;
 
@@ -249,9 +238,9 @@ const donemT=k=>ST.don==="a"?AYK[+k.slice(5,7)-1]+" "+k.slice(2,4):ST.don==="c"?
 function gerceklesen(){
   const bas=basYil(), RR=kayit().filter(r=>r.d.slice(0,4)>=bas);
   const P=new Map();
-  const kodMu=ST.mod!=="ted", tekKod=new Set(RR.map(r=>r.kod)).size<=1;
-  for(const r of RR){ const key=(kodMu?r.ted+(tekKod?"":"|"+r.kod):(r.kod||r.ad))+"|"+r.pb+"|"+(r.ts||""); let p=P.get(key);
-    if(!p){ p={key,kod:kodMu&&tekKod?"":r.kod,ad:kodMu?r.ted:r.ad,pb:r.pb,ts:r.ts||"",son:"",sonF:0,q:0,n:0,per:{},pts:{}}; P.set(key,p); }
+  const kodMu=ST.mod==="kod";
+  for(const r of RR){ const key=(kodMu?r.ted:(r.kod||r.ad))+"|"+r.pb+"|"+(r.ts||""); let p=P.get(key);
+    if(!p){ p={key,kod:kodMu?"":r.kod,ad:kodMu?r.ted:r.ad,pb:r.pb,ts:r.ts||"",son:"",sonF:0,q:0,n:0,per:{},pts:{}}; P.set(key,p); }
     const k=donemK(r.d), o=p.per[k]||(p.per[k]={a:0,w:0,s:0,n:0}); const w=r.q>0?r.q:1;
     o.a+=r.f*w; o.w+=w; o.s+=r.f; o.n++;
     const ay=r.d.slice(0,7), t=p.pts[ay]||(p.pts[ay]={a:0,w:0}); t.a+=r.f*w; t.w+=w;
@@ -261,23 +250,19 @@ function gerceklesen(){
   L.forEach((p,i)=>{ p.c=PALETTE[i%PALETTE.length]; });
   const GENEL=/^(FIBER|FIBRE|FIBRES|ELYAF|FILAMENT|FIB\.)$/i, sk={};
   L.forEach(p=>new Set(String(p.ad).toLocaleUpperCase("tr-TR").split(/\s+/)).forEach(w=>sk[w]=(sk[w]||0)+1));
-  if(kodMu) L.forEach(p=>{ p.kisa=(p.kod?p.kod.split("-").slice(2).join("-")+" · ":"")+p.ad.replace(/\s+(LTD\.?|LIMITED|S\.?P\.?A\.?|S\.?A\.?S?|GMBH|A\.?Ş\.?|CO\.?,?\s*LTD\.?|INC\.?|S\.?R\.?L\.?|SAN(AYİ)?\.?.*)$/i,"").slice(0,32); });
+  if(kodMu) L.forEach(p=>{ p.kisa=p.ad.replace(/\s+(LTD\.?|LIMITED|S\.?P\.?A\.?|S\.?A\.?S?|GMBH|A\.?Ş\.?|CO\.?,?\s*LTD\.?|INC\.?|S\.?R\.?L\.?|SAN(AYİ)?\.?.*)$/i,"").slice(0,32); });
   else L.forEach(p=>{ const w=String(p.ad).split(/\s+/).filter(x=>{ const u=x.toLocaleUpperCase("tr-TR"); return !GENEL.test(u)&&!(L.length>=3&&sk[u]>=.7*L.length&&!/\d/.test(u)); });
     p.kisa=(w.join(" ")||p.ad||p.kod); });
-  return {L,per,bas,R:RR,tekKod};
+  return {L,per,bas,R:RR};
 }
 
 /* ====== çizim ====== */
 let G=null;
 function renderAll(){
-  if(GOM){}
-  else if(ST.mod==="kod"){ if(!kayit().length){ /* seçim boşsa en çok alınan kod */
-      const c=new Map(); kaynak().forEach(r=>{ if(r.kod) c.set(r.kod,(c.get(r.kod)||0)+1); });
-      const en=[...c.entries()].sort((a,b)=>b[1]-a[1])[0]; ST.k={k1:"",k2:"",k3:"",k4:""}; if(en) en[0].split("-").forEach((v,i)=>{ if(i<4) ST.k[KK[i]]=v; }); } }
-  else { const T=secenek(ST.mod), tl=T.map(x=>x[0]);
-    if(ST.mod==="ted"){ if(!ST.ted||!tl.includes(ST.ted)) ST.ted=tl.includes("WAXMAN FIBRES LTD")?"WAXMAN FIBRES LTD":(tl[0]||""); }
-    else if(!ST.tanim||!tl.includes(ST.tanim)) ST.tanim=(T.slice().sort((a,b)=>b[1]-a[1])[0]||[""])[0]; }
-  secAlanCiz();
+  const T=tedarikciler(), tl=T.map(x=>x[0]);
+  if(GOM){} else if(ST.mod==="kod"){ if(!ST.kod||!tl.includes(ST.kod)) ST.kod=(T.slice().sort((a,b)=>b[1]-a[1])[0]||[""])[0]; }
+  else if(!ST.ted||!tl.includes(ST.ted)) ST.ted=tl.includes("WAXMAN FIBRES LTD")?"WAXMAN FIBRES LTD":(tl[0]||"");
+  $("#tedQ").value=(T.find(x=>x[0]===secili())||["","",""])[2];
   document.querySelectorAll("#mod button").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.v===ST.mod)));
   document.querySelectorAll("#kaynak button").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.v===ST.kay)));
   document.querySelectorAll("#donem button").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.v===ST.don)));
@@ -291,11 +276,11 @@ function renderStats(){
   const pbs={}; R.forEach(r=>pbs[r.pb]=(pbs[r.pb]||0)+r.f*(r.q||0));
   $("#stats").innerHTML=[
     [ST.kay==="sip"?"Sipariş satırı":"Fatura satırı",R.length.toLocaleString("tr-TR")+" <small>"+(ST.bas==="*"?"tüm yıllar":G.bas+" ve sonrası")+"</small>"],
-    [ST.mod==="ted"?"Ürün / kalem":G.tekKod?"Tedarikçi / teslim":"Tedarikçi / kod",G.L.length],
+    [ST.mod==="kod"?"Tedarikçi / teslim":"Ürün / kalem",G.L.length],
     ["Toplam miktar",Math.round(R.reduce((s,r)=>s+r.q,0)).toLocaleString("tr-TR")+" <small>kg</small>"],
     ["Son alım",son?lab(son):"–"]
   ].map(([k,v])=>`<div class="stat"><div class="k">${k}</div><div class="v">${v}</div></div>`).join("");
-  $("#gAlt").textContent=(ST.mod!=="ted"?"tedarikçilere göre · ":"")+(ST.kay==="sip"?"Satınalma siparişleri · sipariş tarihine göre":"Kayıtlar (faturalar) · fatura tarihine göre")+" · "+(ST.don==="a"?"aylık":ST.don==="c"?"çeyreklik":"yıllık")+" ortalama";
+  $("#gAlt").textContent=(ST.mod==="kod"?"tedarikçilere göre · ":"")+(ST.kay==="sip"?"Satınalma siparişleri · sipariş tarihine göre":"Kayıtlar (faturalar) · fatura tarihine göre")+" · "+(ST.don==="a"?"aylık":ST.don==="c"?"çeyreklik":"yıllık")+" ortalama";
 }
 function hucre(v,prev){
   if(v==null) return {cls:"na",h:'<span class="num">·</span><span class="chg">&nbsp;</span>'};
@@ -306,8 +291,8 @@ function hucre(v,prev){
 }
 function renderGer(){
   const {L,per}=G;
-  if(!L.length){ $("#gerTbl").innerHTML=`<div class="bos">${secVar()?"Bu seçim için "+(ST.kay==="sip"?"sipariş":"fatura")+" fiyatı yok"+(ST.kay==="fat"&&!FAT.length?" (Kayıtlar yüklenmemiş)":"")+".":"Seçim yap."}</div>`; return; }
-  let h=`<table><thead><tr><th class="name">${ST.mod!=="ted"?"Tedarikçi":"Ürün"}</th><th>PB</th><th>Teslim</th>${per.map(k=>`<th>${donemT(k)}</th>`).join("")}<th class="son">Son fiyat</th><th>Son alım</th><th>Miktar (kg)</th></tr></thead><tbody>`;
+  if(!L.length){ $("#gerTbl").innerHTML=`<div class="bos">${ST.ted?"Bu tedarikçi için "+(ST.kay==="sip"?"sipariş":"fatura")+" fiyatı yok"+(ST.kay==="fat"&&!FAT.length?" (Kayıtlar yüklenmemiş)":"")+".":"Tedarikçi seç."}</div>`; return; }
+  let h=`<table><thead><tr><th class="name">${ST.mod==="kod"?"Tedarikçi":"Ürün"}</th><th>PB</th><th>Teslim</th>${per.map(k=>`<th>${donemT(k)}</th>`).join("")}<th class="son">Son fiyat</th><th>Son alım</th><th>Miktar (kg)</th></tr></thead><tbody>`;
   L.forEach(p=>{ let prev=null;
     h+=`<tr><td class="name" title="${esc(p.ad)}">${esc(p.ad||p.kod)}${p.kod?`<small>${esc(p.kod)}</small>`:""}</td><td>${esc(p.pb)}</td><td><b>${esc(p.ts)||'<span style="color:var(--fg-3);font-weight:400">?</span>'}</b></td>`;
     per.forEach(k=>{ const o=p.per[k]; const v=o?o.a/o.w:null; const c=hucre(v,prev); if(v!=null) prev=v;
@@ -391,41 +376,28 @@ function draw(){
 }
 
 /* ====== olaylar ====== */
-/* ---- seçim kutuları: Tedarikçi / Madde tanımı tek kutu, Madde kodu KOD1-KOD4 dört kutu ---- */
-const ALAN_AD={ted:"Tedarikçi",tanim:"Madde tanımı",k1:"KOD1",k2:"KOD2",k3:"KOD3",k4:"KOD4"};
-function alanDeger(a){ return a==="ted"?ST.ted:a==="tanim"?ST.tanim:ST.k[a]; }
-function secAlanCiz(){
-  const kutu=(a,dar)=>`${dar?`<span class="kl">${ALAN_AD[a]}</span>`:""}<div class="cb${dar?" dar":""}" data-alan="${a}"><input placeholder="${dar?"tümü":"Yaz ya da seç…"}" autocomplete="off" value="${esc(alanDeger(a)||"")}"><span class="ok">▾</span><div class="cbl" hidden></div></div>`;
-  $("#secAlan").innerHTML=ST.mod==="kod"?KK.map(k=>kutu(k,1)).join(""):kutu(ST.mod,0);
-}
-function yeniSecim(){ ST.sel.clear(); uiKaydet(); renderAll(); G.L.slice(0,3).forEach(p=>ST.sel.add("g|"+p.key)); renderPills(); draw(); }
-function alanSec(a,v){
-  if(a==="ted") ST.ted=v; else if(a==="tanim") ST.tanim=v;
-  else { ST.k[a]=v; /* üst KOD değişince artık uymayan alt KOD'lar boşalır */
-    KK.forEach(k=>{ if(k!==a&&ST.k[k]&&!secenek(k).some(x=>x[0]===ST.k[k])) ST.k[k]=""; }); }
-  yeniSecim();
-}
+function tedSec(v){ const tl=tedarikciler().map(x=>x[0]); const t=tl.find(x=>x===v);
+  if(!t) return; if(ST.mod==="kod") ST.kod=t; else ST.ted=t; ST.sel.clear(); uiKaydet(); $("#tedL").hidden=true; renderAll();
+  /* açılışta en çok alınan 3 ürün grafikte seçili gelsin */
+  G.L.slice(0,3).forEach(p=>ST.sel.add("g|"+p.key)); renderPills(); draw(); }
+/* açılır liste: odaklanınca yazı seçilir ve bütün liste açılır; yazdıkça süzülür */
 let cbI=-1;
-function cbAc(cb,q){ const a=cb.dataset.alan, tl=secenek(a), n=String(q||"").toLocaleLowerCase("tr-TR").trim(), dar=KK.includes(a);
-  const L=n?tl.filter(([t,c,g])=>g.toLocaleLowerCase("tr-TR").includes(n)):tl; cbI=0;
-  const box=cb.querySelector(".cbl"); box.hidden=false; const sec=alanDeger(a);
-  box.innerHTML=(dar?`<div data-t="" class="${!sec?"sec ":""}on">tümü</div>`:"")+(L.length?L.map(([t,c,g],i)=>`<div data-t="${esc(t)}" class="${!dar&&i===0?"on ":""}${t===sec?"sec":""}">${esc(g)}<small>${c} ${ST.kay==="sip"?"sipariş":"fatura"}</small></div>`).join(""):`<div class="yok">Eşleşen ${ALAN_AD[a].toLocaleLowerCase("tr-TR")} yok</div>`);
-  if(!n){ const s=box.querySelector(".sec"); if(s){ box.querySelectorAll(".on").forEach(x=>x.classList.remove("on")); s.classList.add("on"); cbI=[...box.querySelectorAll("div[data-t]")].indexOf(s); s.scrollIntoView({block:"center"}); } } }
-function cbKapat(cb){ cb.querySelector(".cbl").hidden=true; cb.querySelector("input").value=alanDeger(cb.dataset.alan)||""; }
-const SA=$("#secAlan");
-SA.addEventListener("focusin",e=>{ const cb=e.target.closest(".cb"); if(!cb||e.target.tagName!=="INPUT") return; e.target.select(); cbAc(cb,""); });
-SA.addEventListener("input",e=>{ const cb=e.target.closest(".cb"); if(cb) cbAc(cb,e.target.value); });
-SA.addEventListener("keydown",e=>{ const cb=e.target.closest(".cb"); if(!cb) return; const it=[...cb.querySelectorAll(".cbl div[data-t]")];
+function cbAc(q){ const tl=tedarikciler(), n=String(q||"").toLocaleLowerCase("tr-TR").trim();
+  const L=n?tl.filter(([t,c,g])=>g.toLocaleLowerCase("tr-TR").includes(n)):tl; cbI=L.length?0:-1;
+  const box=$("#tedL"); box.hidden=false;
+  box.innerHTML=L.length?L.map(([t,c,g],i)=>`<div data-t="${esc(t)}" class="${i===0?"on ":""}${t===secili()?"sec":""}">${esc(g)}<small>${c} ${ST.kay==="sip"?"sipariş":"fatura"}</small></div>`).join(""):`<div class="yok">Eşleşen ${ST.mod==="kod"?"madde kodu":"tedarikçi"} yok</div>`;
+  if(!n){ const s=box.querySelector(".sec"); if(s){ box.querySelectorAll(".on").forEach(x=>x.classList.remove("on")); s.classList.add("on"); cbI=[...box.children].indexOf(s); s.scrollIntoView({block:"center"}); } } }
+function cbKapat(){ $("#tedL").hidden=true; $("#tedQ").value=(tedarikciler().find(x=>x[0]===secili())||["","",""])[2]; }
+$("#tedQ").addEventListener("focus",e=>{ e.target.select(); cbAc(""); });
+$("#tedQ").addEventListener("input",e=>cbAc(e.target.value));
+$("#tedQ").addEventListener("keydown",e=>{ const box=$("#tedL"), it=[...box.querySelectorAll("div[data-t]")];
   if(e.key==="ArrowDown"||e.key==="ArrowUp"){ e.preventDefault(); if(!it.length) return; cbI=Math.max(0,Math.min(it.length-1,cbI+(e.key==="ArrowDown"?1:-1)));
     it.forEach((x,i)=>x.classList.toggle("on",i===cbI)); it[cbI].scrollIntoView({block:"nearest"}); }
-  else if(e.key==="Enter"){ e.preventDefault(); const x=it[cbI]||it[0]; if(x){ e.target.blur(); alanSec(cb.dataset.alan,x.dataset.t); } }
-  else if(e.key==="Escape"){ cbKapat(cb); e.target.blur(); } });
-SA.addEventListener("mousedown",e=>{ const d=e.target.closest(".cbl div[data-t]"); if(!d) return; e.preventDefault(); const cb=d.closest(".cb");
-  document.activeElement&&document.activeElement.blur(); alanSec(cb.dataset.alan,d.dataset.t); });
-SA.addEventListener("focusout",e=>{ const cb=e.target.closest(".cb"); if(cb) setTimeout(()=>{ if(document.body.contains(cb)) cbKapat(cb); },120); });
-/* başka bir sayfadan (Satınalma) kod seçimi */
-window.tedSec=v=>{ if(ST.mod==="kod"){ String(v).split("-").forEach((x,i)=>{ if(i<4) ST.k[KK[i]]=x; }); } else if(ST.mod==="tanim") ST.tanim=v; else ST.ted=v; yeniSecim(); };
-$("#mod").onclick=e=>{ const b=e.target.closest("button"); if(!b||b.dataset.v===ST.mod) return; ST.mod=b.dataset.v; yeniSecim(); };
+  else if(e.key==="Enter"){ e.preventDefault(); if(it[cbI]){ tedSec(it[cbI].dataset.t); e.target.blur(); } }
+  else if(e.key==="Escape"){ cbKapat(); e.target.blur(); } });
+$("#tedL").addEventListener("mousedown",e=>{ const d=e.target.closest("div[data-t]"); if(!d) return; e.preventDefault(); tedSec(d.dataset.t); $("#tedQ").blur(); });
+$("#tedQ").addEventListener("blur",()=>setTimeout(cbKapat,120));
+$("#mod").onclick=e=>{ const b=e.target.closest("button"); if(!b||b.dataset.v===ST.mod) return; ST.mod=b.dataset.v; ST.sel.clear(); uiKaydet(); renderAll(); G.L.slice(0,3).forEach(p=>ST.sel.add("g|"+p.key)); renderPills(); draw(); };
 $("#kaynak").onclick=e=>{ const b=e.target.closest("button"); if(!b) return; ST.kay=b.dataset.v; ST.sel.clear(); uiKaydet(); renderAll(); G.L.slice(0,3).forEach(p=>ST.sel.add("g|"+p.key)); renderPills(); draw(); };
 $("#donem").onclick=e=>{ const b=e.target.closest("button"); if(!b) return; ST.don=b.dataset.v; uiKaydet(); renderAll(); };
 $("#basY").onchange=e=>{ ST.bas=e.target.value; uiKaydet(); renderAll(); };
@@ -449,7 +421,7 @@ let rz; addEventListener("resize",()=>{ clearTimeout(rz); rz=setTimeout(draw,150
 /* başlangıç */
 (async()=>{ stamp("Yükleniyor…"); faturalariOku(); await siparisleriOku(); stamp("");
   if(GOM){ /* Satınalma › Alım Dağılımı'ndan açıldı: tek madde kodu, bütün geçmişiyle */
-    ST.mod="kod"; ST.k={k1:"",k2:"",k3:"",k4:""}; String(GOM.kod).split("-").forEach((v,i)=>{ if(i<4) ST.k[KK[i]]=v; }); ST.bas="*";
+    ST.mod="kod"; ST.kod=GOM.kod; ST.bas="*";
     document.body.classList.add("gomulu"); }
   renderAll(); if(!ST.sel.size){ G.L.slice(0,3).forEach(p=>ST.sel.add("g|"+p.key)); renderPills(); draw(); }
 })();
