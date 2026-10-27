@@ -190,7 +190,7 @@ async function siparisleriOku(){
   try{ const e=JSON.parse(D["buy:edits"]||"null"); if(e){ OVR=e.ovr||{}; DEL=e.del||{}; } }catch(e){}
   MAN.forEach((r,i)=>{ if(!r.id) r.id="M"+i+"_"+(r.sayi||""); });
   SIP=[...MAN,...L].filter(r=>!DEL[r.id]).map(r=>({...r,...(OVR[r.id]||{})}))
-    .map(r=>({ted:nrmAd(r.ted),d:String(r.tarih||"").slice(0,10),kod:String(r.kod||"").trim(),ad:String(r.tanim||"").trim(),f:+r.fiyat||0,pb:String(r.pb||"").trim()||"?",
+    .map(r=>({ted:nrmAd(r.ted),d:String(r.tarih||"").slice(0,10),kod:String(r.kod||[r.k1,r.k2,r.k3,r.k4].filter(v=>v!=null&&v!=="").join("-")).trim(),ad:String(r.tanim||"").trim(),f:+r.fiyat||0,pb:String(r.pb||"").trim()||"?",
       ts:String(r.teslim||(SIPTES.get(String(r.sayi||"").trim())||{}).t||"").trim().toUpperCase(),q:+r.mik||0}))
     .filter(r=>r.ted&&r.f>=0.05&&/^\d{4}-\d{2}/.test(r.d));
 }
