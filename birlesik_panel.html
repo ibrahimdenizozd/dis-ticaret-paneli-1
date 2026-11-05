@@ -127,6 +127,30 @@
     position: absolute; inset: 0; display: grid; place-items: center; color: #7a8796;
   }
 </style>
+<script>
+/* üst çubuk düğmeleri: yazı yerine ikon (adı ipucunda ve ekran okuyucuda kalır) */
+window.__ik = function (btn, ad, etiket, rozet) {
+  var P = {
+    indir: '<path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/>',
+    yukle: '<path d="M12 21V9"/><path d="m7 14 5-5 5 5"/><path d="M5 3h14"/>',
+    dosya: '<path d="M3 6.5A1.5 1.5 0 0 1 4.5 5H9l2 2h8.5A1.5 1.5 0 0 1 21 8.5v9a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 17.5z"/><path d="M12 16.5v-5.5"/><path d="m9.5 13.5 2.5-2.5 2.5 2.5"/>',
+    yenile: '<path d="M20 11.5a8 8 0 1 1-2.4-5.7"/><path d="M20 4v5h-5"/>',
+    ay: '<path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/>',
+    gunes: '<circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2.5 12h2M19.5 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
+    cikis: '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/>'
+  };
+  if (!btn) return;
+  btn.classList.add("ikonlu");
+  btn.innerHTML = '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + P[ad] + "</svg>" +
+    (rozet ? '<span class="rozet">' + rozet + "</span>" : "");
+  btn.setAttribute("aria-label", etiket); if (!btn.dataset.ipucu) btn.title = etiket; else btn.title = btn.dataset.ipucu;
+};
+</script>
+<style>
+  header .icon-btn.ikonlu { display: inline-flex; align-items: center; justify-content: center; gap: 4px; padding: 4px 8px; min-width: 34px; }
+  header .icon-btn.ikonlu svg { display: block; }
+  header .icon-btn.ikonlu .rozet { background: #e9a23b; color: #1f3b57; font-size: 11px; font-weight: 700; border-radius: 9px; padding: 0 6px; line-height: 17px; }
+</style>
 </head>
 <body>
 
@@ -471,7 +495,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   var reload = document.getElementById("reload");
   var durumEl = document.createElement("span"); durumEl.id = "bulutDurum";
   var cikis = document.createElement("button"); cikis.className = "icon-btn"; cikis.id = "bulutCikis";
-  cikis.textContent = "Çıkış"; cikis.title = "Oturumu kapat"; cikis.style.display = "none";
+  window.__ik(cikis, "cikis", "Çıkış (oturumu kapat)"); cikis.style.display = "none";
   if (reload && reload.parentNode) { reload.parentNode.insertBefore(durumEl, reload); reload.parentNode.insertBefore(cikis, reload); }
   var bant = document.createElement("div"); bant.id = "bulutBant"; document.body.appendChild(bant);
 
@@ -797,7 +821,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   function temaHepsi() {
     [].forEach.call(document.querySelectorAll("iframe"), temaUygula);
     document.documentElement.classList.toggle("koyuTema", temaKoyu());
-    temaBtn.textContent = temaKoyu() ? "Açık tema" : "Koyu tema";
+    window.__ik(temaBtn, temaKoyu() ? "gunes" : "ay", temaKoyu() ? "Açık temaya geç" : "Koyu temaya geç");
   }
   var temaBtn = document.createElement("button"); temaBtn.className = "icon-btn"; temaBtn.id = "temaUst";
   temaBtn.title = "Bütün panellerde koyu / açık tema";
@@ -821,7 +845,9 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   function ustSirala() {
     var r = document.getElementById("reload"); if (!r || !r.parentNode) return;
     var p = r.parentNode, ilk = document.getElementById("kayitTum"), geri = document.getElementById("kayitGeri");
-    if (geri) geri.textContent = "JSON yükle";
+    if (geri) window.__ik(geri, "yukle", "JSON yükle — kayıt dosyasından bütün panelleri geri yükle");
+    window.__ik(ilk, "indir", "JSON indir — bütün panellerin verisini tek dosya olarak indir");
+    window.__ik(r, "yenile", "Yenile — sayfayı önbelleği atlayarak yeniden yükle (Ctrl+Shift+R)");
     if (ilk) {
       p.insertBefore(durumEl, ilk);
       var kd = document.getElementById("kayitDurum"); if (kd) p.insertBefore(kd, ilk);
@@ -1155,10 +1181,10 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
 
   /* ---------------- "Dosyalar" penceresi ---------------- */
   var dosyaBtn = document.createElement("button"); dosyaBtn.className = "icon-btn"; dosyaBtn.id = "bulutDosyalar";
-  dosyaBtn.textContent = "Dosyalar"; dosyaBtn.title = "Yüklenen Excel dosyalarının yedekleri"; dosyaBtn.style.display = "none";
+  window.__ik(dosyaBtn, "dosya", "Dosyalar — buluta yedeklenen Excel dosyaları"); dosyaBtn.style.display = "none";
   if (cikis.parentNode) cikis.parentNode.insertBefore(dosyaBtn, cikis);
   function dosyaSayiGoster() {
-    kuyruk("tumu").then(function (l) { dosyaBtn.textContent = "Dosyalar" + (l.length ? " (" + l.length + " bekliyor)" : ""); });
+    kuyruk("tumu").then(function (l) { window.__ik(dosyaBtn, "dosya", "Dosyalar — buluta yedeklenen Excel dosyaları" + (l.length ? " · " + l.length + " dosya gönderilmeyi bekliyor" : ""), l.length ? String(l.length) : ""); });
   }
   var dstil = document.createElement("style");
   dstil.textContent =
