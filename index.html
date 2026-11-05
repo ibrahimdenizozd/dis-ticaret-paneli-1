@@ -143,6 +143,7 @@
     <button class="tab" data-panel="balya">Balya Bilgileri</button>
   </nav>
   <span class="spacer"></span>
+  <span id="kurBar" aria-label="Döviz kurları"></span>
   <button class="icon-btn" id="takvimBtn" title="Takvim" aria-label="Takvim"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15.5" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/><path d="M7.5 13.5h2M11 13.5h2M14.5 13.5h2M7.5 17h2M11 17h2"/></svg></button>
   <button class="icon-btn" id="kayitTum" title="Bütün panellerin verisini tek JSON dosyası olarak indir">JSON indir</button>
   <button class="icon-btn" id="kayitGeri" title="Kayıt dosyasından bütün panelleri geri yükle">Geri yükle</button>
@@ -825,7 +826,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
       p.insertBefore(durumEl, ilk);
       var kd = document.getElementById("kayitDurum"); if (kd) p.insertBefore(kd, ilk);
     }
-    [document.getElementById("takvimBtn"), ilk, geri, dosyaBtn, r, temaBtn, cikis].forEach(function (el) { if (el) p.appendChild(el); });
+    [document.getElementById("kurBar"), document.getElementById("takvimBtn"), ilk, geri, dosyaBtn, r, temaBtn, cikis].forEach(function (el) { if (el) p.appendChild(el); });
     var st = document.createElement("style");
     st.textContent = "#kayitTum,#kayitGeri,#bulutDosyalar,#temaUst,#bulutCikis,#reload{white-space:nowrap}" +
       "html.koyuTema body,html.koyuTema main{background:#14181d}" +
@@ -1800,6 +1801,73 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   function esc(e) { if (e.key === "Escape" && pop.classList.contains("acik")) kapat(); }
   document.addEventListener("keydown", esc);
   window.__takvimEsc = esc;
+})();
+</script>
+<script>
+/* Üst çubukta döviz kurları: TCMB (USD/TRY, EUR/TRY satış ve EUR/USD), alınamazsa ECB kuru.
+   Metin olarak gösterilir; 30 dakikada bir yenilenir, son değerler bu tarayıcıda saklanır. */
+(function () {
+  var bar = document.getElementById("kurBar"); if (!bar) return;
+  var st = document.createElement("style");
+  st.textContent = "#kurBar{display:inline-flex;align-items:center;gap:14px;margin:0 12px 0 4px;color:#e8eef4;font-size:13.5px;white-space:nowrap;font-variant-numeric:tabular-nums}" +
+    "#kurBar .kur{display:inline-flex;align-items:center;gap:6px}#kurBar svg{width:18px;height:18px;flex:0 0 auto}" +
+    "#kurBar .kad{color:#9fb3c8;font-size:12px}#kurBar b{font-weight:600}#kurBar.eski b{color:#e9c46a}" +
+    "@media(max-width:1500px){#kurBar .kad{display:none}#kurBar{gap:10px;margin:0 8px 0 2px}}@media(max-width:1150px){#kurBar .kp{display:none}}";
+  document.head.appendChild(st);
+  var ik = function (renk, yazi, k) {
+    return '<svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="9" fill="' + renk + '"/><text x="10" y="14.2" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-weight="700" font-size="' + (k || 11.5) + '" fill="#fff">' + yazi + '</text></svg>';
+  };
+  var f2 = function (v, d) { return (+v).toLocaleString("tr-TR", { minimumFractionDigits: d, maximumFractionDigits: d }); };
+  function goster(o, eski) {
+    if (!o || !(o.usd > 0 || o.eur > 0 || o.par > 0)) { bar.innerHTML = ""; return; }
+    bar.classList.toggle("eski", !!eski);
+    bar.title = (o.kaynak || "") + (o.tarih ? " · " + o.tarih : "") + (eski ? " · güncellenemedi, son alınan kur" : "") + "\nUSD/TRY ve EUR/TRY satış kuru, EUR/USD paritesi";
+    bar.innerHTML =
+      (o.usd > 0 ? '<span class="kur">' + ik("#2E9E57", "$") + '<span class="kad">USD</span><b>' + f2(o.usd, 4) + '</b></span>' : "") +
+      (o.eur > 0 ? '<span class="kur">' + ik("#3F7FD1", "€") + '<span class="kad">EUR</span><b>' + f2(o.eur, 4) + '</b></span>' : "") +
+      (o.par > 0 ? '<span class="kur kp">' + ik("#C9832B", "€/$", 7.2) + '<span class="kad">EUR/USD</span><b>' + f2(o.par, 4) + '</b></span>' : "");
+  }
+  function al(d, ks) {
+    for (var i = 0; i < ks.length; i++) {
+      var v = ks[i].split(".").reduce(function (o, p) { return o == null ? o : o[p]; }, d);
+      if (typeof v === "string") v = v.replace(",", ".");
+      if (+v > 0) return +v;
+    }
+    return 0;
+  }
+  function tcmb() {
+    if (!window.__tcmbKur) return Promise.reject(new Error("servis yok"));
+    return window.__tcmbKur().then(function (d) {
+      try { console.info("[kur] TCMB yanıtı", d); } catch (e) {}
+      var usd = al(d, ["usd", "usdTry", "USD", "dolar", "usd.satis", "USD.satis", "usd.ForexSelling", "kurlar.USD.satis", "kurlar.USD", "USD.ForexSelling"]);
+      var eur = al(d, ["eur", "eurTry", "EUR", "euro", "eur.satis", "EUR.satis", "eur.ForexSelling", "kurlar.EUR.satis", "kurlar.EUR", "EUR.ForexSelling"]);
+      var par = al(d, ["eurUsd", "EURUSD", "parite"]) || (usd > 0 && eur > 0 ? eur / usd : 0);
+      if (!(par > 0) && !(usd > 0)) throw new Error("kur yok");
+      return { usd: usd, eur: eur, par: par, tarih: d && (d.tarih || d.date) || "", kaynak: "TCMB döviz satış kuru" };
+    });
+  }
+  function ecb() {
+    return fetch("https://api.frankfurter.app/latest?from=USD&to=TRY,EUR", { cache: "no-store" }).then(function (r) { if (!r.ok) throw 0; return r.json(); })
+      .then(function (j) {
+        var t = j && j.rates; if (!t || !(t.TRY > 0) || !(t.EUR > 0)) throw 0;
+        var par = 1 / t.EUR;
+        return { usd: t.TRY, eur: t.TRY * par, par: par, tarih: String(j.date || "").split("-").reverse().join("."), kaynak: "Avrupa Merkez Bankası referans kuru (TCMB'ye ulaşılamadı)" };
+      });
+  }
+  function yenile() {
+    var once = null; try { once = JSON.parse(localStorage.getItem("__kurlar") || "null"); } catch (e) {}
+    tcmb().then(function (o) {
+      /* TCMB yalnızca EUR/USD verdiyse TRY kurlarını ECB'den tamamla */
+      if (o.usd > 0 && o.eur > 0) return o;
+      return ecb().then(function (e) { return { usd: o.usd || e.usd, eur: o.eur || e.eur, par: o.par || e.par, tarih: o.tarih, kaynak: o.kaynak + (o.usd > 0 ? "" : " (TL kurları ECB'den)") }; }, function () { return o; });
+    }).catch(ecb).then(function (o) {
+      goster(o, false); try { localStorage.setItem("__kurlar", JSON.stringify(o)); } catch (e) {}
+    }).catch(function () { goster(once, true); });
+  }
+  try { goster(JSON.parse(localStorage.getItem("__kurlar") || "null"), true); } catch (e) {}
+  (window.__depoHazir || Promise.resolve()).then(function () { setTimeout(yenile, 800); }, function () { yenile(); });
+  setTimeout(function () { if (!bar.innerHTML) yenile(); }, 8000);
+  setInterval(yenile, 30 * 60 * 1000);
 })();
 </script>
 </body>
