@@ -1515,10 +1515,11 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
     var menu = wrap.querySelector(".diger-menu"), dbtn = wrap.querySelector(".diger-btn");
     nav.appendChild(wrap);
     function yerlestir() {
-      DIGER.forEach(function (id) {
-        var t = nav.querySelector('.tab[data-panel="' + id + '"]');
-        if (t) { t.draggable = false; menu.appendChild(t); }
-      });
+      /* Diğer menüsü alfabetik sıralı */
+      DIGER.map(function (id) { return nav.querySelector('.tab[data-panel="' + id + '"]') || menu.querySelector('.tab[data-panel="' + id + '"]'); })
+        .filter(Boolean)
+        .sort(function (a, b) { return a.textContent.trim().localeCompare(b.textContent.trim(), "tr"); })
+        .forEach(function (t) { t.draggable = false; menu.appendChild(t); });
       nav.appendChild(wrap);
     }
     yerlestir();
