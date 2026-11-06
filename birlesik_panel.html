@@ -91,6 +91,8 @@
   .tab[data-panel="waxman"]:hover { background: #A0446E; }
   .tab[data-panel="balya"]:hover { background: #8A6A20; }
   .tab[data-panel="konteyner"]:hover { background: #3A5A87; }
+  .tab.dis-link { text-decoration: none; display: block; }
+  .tab[data-panel="sertifika"]:hover { background: #2E7D5B; }
   .tab.active { color: #fff; border-bottom-color: #ffb547; font-weight: 600; }
   /* "Diğer" menüsü: üzerine gelince TEV ve Mal Tanımı açılır */
   .diger-btn {
@@ -167,6 +169,7 @@ window.__ik = function (btn, ad, etiket, rozet) {
     <button class="tab" data-panel="waxman">Tedarikçi Fiyat Arşivi</button>
     <button class="tab" data-panel="balya">Balya Bilgileri</button>
     <button class="tab" data-panel="konteyner">Konteyner (İç Nakliye) Taşıma</button>
+    <a class="tab dis-link" data-panel="sertifika" data-link="1" href="http://10.0.0.5/SupplierCertificates" target="_blank" rel="noopener" title="Şirket ağındaki Tedarikçi Sertifikaları sayfası (yeni sekmede açılır)">Tedarikçi Sertifikaları ↗</a>
   </nav>
   <span class="spacer"></span>
   <span id="kurBar" aria-label="Döviz kurları"></span>
@@ -1212,7 +1215,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   function boyutYaz(n) { return n >= 1048576 ? (n / 1048576).toFixed(1) + " MB" : Math.max(1, Math.round(n / 1024)) + " KB"; }
   function dosyaPenceresi() {
     var p = document.createElement("div"); p.id = "dosyaPen";
-    var secenek = [].map.call(document.querySelectorAll(".tab[data-panel]"), function (t) {
+    var secenek = [].map.call(document.querySelectorAll(".tab[data-panel]:not([data-link])"), function (t) {
       return '<option value="' + kac(t.getAttribute("data-panel")) + '">' + kac(t.textContent.trim()) + "</option>";
     }).join("") + '<option value="otoyedek">Otomatik JSON yedeği</option><option value="otogunluk">Günlük JSON kopyası</option><option value="yedek">Kayıt dosyası (JSON)</option>';
     p.innerHTML = '<div class="k"><div class="ust"><b>Yüklenen dosyalar</b>' +
@@ -1511,7 +1514,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
     sirala();
 
     /* "Diğer" menüsü: TEV Tablosu ve Mal Tanımı Düzenleyici bu menüye taşınır */
-    var DIGER = ["tev", "diibtool", "teminat", "waxman", "balya", "konteyner"];
+    var DIGER = ["tev", "diibtool", "teminat", "waxman", "balya", "konteyner", "sertifika"];
     var wrap = document.createElement("div"); wrap.className = "diger-wrap";
     wrap.innerHTML = '<button type="button" class="diger-btn">Diğer ▾</button><div class="diger-menu"></div>';
     var menu = wrap.querySelector(".diger-menu"), dbtn = wrap.querySelector(".diger-btn");
@@ -1550,7 +1553,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
 
   document.getElementById("nav").addEventListener("click", function (e) {
     var t = e.target.closest(".tab");
-    if (t) goster(t.dataset.panel);
+    if (t && !t.dataset.link) goster(t.dataset.panel);   /* dış bağlantılar yalnızca yeni sekmede açılır */
   });
 
   /* Yenile = Ctrl+Shift+R: sayfayı önbelleği atlayarak sunucudan yeniden indirir.
